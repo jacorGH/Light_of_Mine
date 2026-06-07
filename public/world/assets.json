@@ -1,0 +1,77 @@
+{
+  "assets": {
+    "tree_palm_01": {
+      "model": "models/nature/tree_palm_01.glb",
+      "tags": ["nature", "tree", "tropical"],
+      "scale": 1.0,
+      "collider": "cylinder"
+    },
+    "tree_palm_02": {
+      "model": "models/nature/tree_palm_02.glb",
+      "tags": ["nature", "tree", "tropical"],
+      "scale": 1.0,
+      "collider": "cylinder"
+    },
+    "rock_coastal_01": {
+      "model": "models/nature/rock_coastal_01.glb",
+      "tags": ["nature", "rock", "coastal"],
+      "scale": 1.0,
+      "collider": "convex"
+    },
+    "rock_coastal_02": {
+      "model": "models/nature/rock_coastal_02.glb",
+      "tags": ["nature", "rock", "coastal"],
+      "scale": 1.5,
+      "collider": "convex"
+    },
+    "boat_small_01": {
+      "model": "models/props/boat_small_01.glb",
+      "tags": ["prop", "vehicle", "boat"],
+      "scale": 1.0,
+      "collider": "box"
+    },
+    "house_wood_01": {
+      "model": "models/structures/house_wood_01.glb",
+      "tags": ["structure", "building", "village"],
+      "scale": 1.0,
+      "collider": "box",
+      "interior": "house_wood_01_interior"
+    },
+    "chest_wooden": {
+      "model": "models/props/chest_wooden.glb",
+      "tags": ["prop", "container", "loot"],
+      "scale": 1.0,
+      "collider": "box"
+    },
+    "npc_villager_male": {
+      "model": "models/characters/villager_male.glb",
+      "tags": ["npc", "humanoid", "villager"],
+      "scale": 1.0,
+      "animations": ["idle", "walk", "talk"]
+    },
+    "npc_guard": {
+      "model": "models/characters/guard.glb",
+      "tags": ["npc", "humanoid", "guard"],
+      "scale": 1.0,
+      "animations": ["idle", "walk", "attack", "patrol"]
+    },
+    "enemy_crab_01": {
+      "model": "models/creatures/crab_01.glb",
+      "tags": ["enemy", "creature", "beach"],
+      "scale": 1.0,
+      "animations": ["idle", "walk", "attack"]
+    },
+    "torch_standing": {
+      "model": "models/props/torch_standing.glb",
+      "tags": ["prop", "light", "fire"],
+      "scale": 1.0,
+      "light": { "color": "#ff9944", "intensity": 0.8, "range": 8 }
+    },
+    "campfire": {
+      "model": "models/props/campfire.glb",
+      "tags": ["prop", "light", "fire"],
+      "scale": 1.0,
+      "light": { "color": "#ff6622", "intensity": 1.0, "range": 12 }
+    }
+  }
+}

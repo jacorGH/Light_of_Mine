@@ -1,0 +1,17 @@
+{
+  "name": "light-of-mine",
+  "version": "0.1.0",
+  "description": "A 3D open-world RPG inspired by Morrowind, built with Three.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
