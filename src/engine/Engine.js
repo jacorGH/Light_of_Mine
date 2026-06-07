@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { PlayerController } from './PlayerController.js';
+import { WorldGrid } from './WorldGrid.js';
 
 /**
- * Core engine — manages renderer, camera, scene, and game loop.
+ * Core engine — manages renderer, camera, scene, game loop, and world streaming.
  */
 export class Engine {
   constructor(canvas) {
@@ -25,10 +26,16 @@ export class Engine {
       0.1,
       500
     );
-    this.camera.position.set(0, 5, 10);
+    this.camera.position.set(32, 2, 32);
 
     // Player controller (first-person)
     this.player = new PlayerController(this.camera, this.renderer.domElement);
+
+    // World grid (streaming open world)
+    this.worldGrid = new WorldGrid(this, {
+      cellSize: 64,
+      viewRadius: 2,
+    });
 
     // Clock for delta time
     this.clock = new THREE.Clock();
@@ -45,6 +52,13 @@ export class Engine {
     this.renderer.setSize(w, h);
   }
 
+  /**
+   * Initialize the world — loads the grid manifest and initial cells.
+   */
+  async init() {
+    await this.worldGrid.init();
+  }
+
   start() {
     this.clock.start();
     this.renderer.setAnimationLoop(() => this.update());
@@ -53,24 +67,7 @@ export class Engine {
   update() {
     const delta = this.clock.getDelta();
     this.player.update(delta);
+    this.worldGrid.update();
     this.renderer.render(this.scene, this.camera);
-  }
-
-  /**
-   * Clear the current scene (when loading a new area).
-   */
-  clearScene() {
-    while (this.scene.children.length > 0) {
-      const obj = this.scene.children[0];
-      this.scene.remove(obj);
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose());
-        } else {
-          obj.material.dispose();
-        }
-      }
-    }
   }
 }

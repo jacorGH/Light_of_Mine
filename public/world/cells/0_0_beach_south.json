@@ -1,0 +1,76 @@
+{
+  "id": "0_0_beach_south",
+  "name": "Southern Shore",
+  "biome": "beach",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#c2a86b",
+    "roughness": 0.95,
+    "noiseScale": 0.08,
+    "noiseAmplitude": 2.0,
+    "blendRegions": [
+      { "edge": "north", "color": "#5a8a3c", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "tree_palm_01", "position": [12, 0, -5], "rotation": [0, 45, 0], "scale": 1.2 },
+    { "asset": "tree_palm_01", "position": [18, 0, -12], "rotation": [0, 120, 0], "scale": 1.0 },
+    { "asset": "tree_palm_02", "position": [8, 0, -15], "rotation": [0, 200, 0], "scale": 1.4 },
+    { "asset": "tree_palm_01", "position": [45, 0, -8], "rotation": [0, 80, 0], "scale": 0.9 },
+    { "asset": "tree_palm_02", "position": [52, 0, -20], "rotation": [0, 300, 0], "scale": 1.1 },
+    { "asset": "rock_coastal_01", "position": [25, 0, 3], "rotation": [0, 120, 0], "scale": 1.0 },
+    { "asset": "rock_coastal_02", "position": [30, 0, -2], "rotation": [10, 45, 0], "scale": 1.3 },
+    { "asset": "rock_coastal_01", "position": [55, 0, 5], "rotation": [0, 220, 0], "scale": 0.8 },
+    { "asset": "rock_coastal_02", "position": [10, 0, 8], "rotation": [5, 90, 0], "scale": 1.5 },
+    { "asset": "boat_small_01", "position": [20, 0, 10], "rotation": [0, -30, 5], "scale": 1.0 },
+    { "asset": "campfire", "position": [35, 0, -5], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "driftwood_01", "position": [40, 0, 8], "rotation": [0, 65, 0], "scale": 1.0 },
+    { "asset": "driftwood_01", "position": [15, 0, 12], "rotation": [0, 140, 10], "scale": 0.7 }
+  ],
+  "npcs": [
+    {
+      "id": "fisherman_01",
+      "asset": "npc_villager_male",
+      "name": "Old Harren",
+      "position": [22, 0, 8],
+      "rotation": [0, 180, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/fisherman_01.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "beach_chest_01",
+      "asset": "chest_wooden",
+      "position": [50, 0.3, -12],
+      "contents": ["potion_health_minor", "gold_5"]
+    }
+  ],
+  "doors": [
+    {
+      "id": "cave_entrance",
+      "position": [58, 1, -18],
+      "rotation": [0, 90, 0],
+      "target": "beach_cave",
+      "exitPosition": [58, 2, -16],
+      "label": "Tidal Grotto"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "crab_ambush",
+      "type": "once",
+      "shape": "sphere",
+      "position": [38, 0, 5],
+      "radius": 6,
+      "event": "spawn_enemies",
+      "data": {
+        "enemies": [
+          { "asset": "enemy_crab_01", "position": [40, 0, 7] },
+          { "asset": "enemy_crab_01", "position": [36, 0, 3] },
+          { "asset": "enemy_crab_01", "position": [41, 0, 4] }
+        ]
+      }
+    }
+  ]
+}

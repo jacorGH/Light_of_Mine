@@ -1,0 +1,52 @@
+{
+  "id": "1_-2_mountain",
+  "name": "Ashpeak Foothills",
+  "biome": "mountain",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#6a6a5e",
+    "roughness": 0.95,
+    "noiseScale": 0.06,
+    "noiseAmplitude": 12.0,
+    "blendRegions": [
+      { "edge": "west", "color": "#2d5a22", "width": 12 },
+      { "edge": "south", "color": "#5a6b4a", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "rock_cliff_01", "position": [30, 0, -30], "rotation": [0, 0, 0], "scale": 4.0 },
+    { "asset": "rock_cliff_02", "position": [40, 0, -45], "rotation": [0, 60, 0], "scale": 3.5 },
+    { "asset": "rock_cliff_01", "position": [20, 0, -50], "rotation": [10, 180, 0], "scale": 3.0 },
+    { "asset": "rock_boulder_01", "position": [15, 0, -20], "rotation": [0, 45, 0], "scale": 2.0 },
+    { "asset": "rock_boulder_01", "position": [50, 0, -25], "rotation": [0, 120, 0], "scale": 1.8 },
+    { "asset": "rock_boulder_01", "position": [35, 0, -15], "rotation": [0, 270, 0], "scale": 1.5 },
+    { "asset": "tree_pine_01", "position": [10, 0, -10], "rotation": [0, 30, 0], "scale": 1.0 },
+    { "asset": "tree_pine_01", "position": [55, 0, -35], "rotation": [0, 150, 0], "scale": 0.9 },
+    { "asset": "tree_pine_02", "position": [8, 0, -40], "rotation": [0, 220, 0], "scale": 1.1 },
+    { "asset": "snow_patch", "position": [32, 8, -35], "rotation": [0, 0, 0], "scale": 2.0 },
+    { "asset": "snow_patch", "position": [42, 6, -48], "rotation": [0, 90, 0], "scale": 1.5 },
+    { "asset": "mining_node_iron", "position": [25, 3, -35], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "mining_node_iron", "position": [45, 5, -42], "rotation": [0, 90, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "miner_01",
+      "asset": "npc_villager_male",
+      "name": "Torben Pickaxe",
+      "position": [28, 3, -33],
+      "rotation": [0, 0, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/miner_01.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "ore_sample",
+      "asset": "item_ore",
+      "position": [26, 3.2, -36],
+      "contents": ["iron_ore", "iron_ore", "gold_nugget"]
+    }
+  ],
+  "doors": [],
+  "triggers": []
+}
