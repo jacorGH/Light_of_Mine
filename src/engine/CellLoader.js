@@ -249,9 +249,9 @@ export class CellLoader {
     const densityMap = {
       beach: 80,
       coast: 60,
-      forest: 250,
+      forest: 600,
       village: 150,
-      swamp: 120,
+      swamp: 200,
       mountain: 40,
       ruins: 100,
     };
@@ -259,22 +259,26 @@ export class CellLoader {
 
     if (grassCount === 0) return;
 
-    // Create a grass blade geometry (thin triangular shape)
+    // Create a grass blade geometry — taller in forests
+    const isForest = biome === 'forest';
+    const bladeHeight = isForest ? 1.2 : 0.7;
+    const bladeMidHeight = isForest ? 0.7 : 0.4;
     const bladeGeo = new THREE.BufferGeometry();
     const bladeVerts = new Float32Array([
       -0.05, 0, 0,
        0.05, 0, 0,
-       0.03, 0.4, 0,
-      -0.03, 0.4, 0,
-       0.0, 0.7, 0,
+       0.03, bladeMidHeight, 0,
+      -0.03, bladeMidHeight, 0,
+       0.0, bladeHeight, 0,
     ]);
     const bladeIndices = [0, 1, 2, 0, 2, 3, 3, 2, 4];
     bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladeVerts, 3));
     bladeGeo.setIndex(bladeIndices);
     bladeGeo.computeVertexNormals();
 
+    const grassColor = isForest ? '#2a7a1a' : (biome === 'swamp' ? '#3a6a2a' : '#4a9a2a');
     const grassMat = new THREE.MeshStandardMaterial({
-      color: '#4a9a2a',
+      color: grassColor,
       roughness: 0.8,
       flatShading: true,
       side: THREE.DoubleSide,

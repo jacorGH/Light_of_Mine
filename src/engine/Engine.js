@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PlayerController } from './PlayerController.js';
 import { WorldGrid } from './WorldGrid.js';
 import { GrassCutter } from './GrassCutter.js';
+import { WeaponSystem } from './WeaponSystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and world streaming.
@@ -63,10 +64,25 @@ export class Engine {
     // Grass cutting system
     this.grassCutter = new GrassCutter(this);
 
-    // Wire mobile combat gestures to grass cutting (and future combat)
+    // Weapon system
+    this.weaponSystem = new WeaponSystem(this);
+
+    // Wire combat input — both PC click and mobile gesture
     this.player.onCombatGesture = (gesture) => {
-      if (gesture.type !== 'block') {
+      if (gesture.type === 'block') return;
+
+      // Trigger weapon attack animation + projectile
+      this.weaponSystem.attack(gesture);
+
+      // Melee weapons also cut grass
+      const weapon = this.weaponSystem.currentWeapon;
+      if (weapon.type === 'melee') {
         this.grassCutter.slash();
+      }
+
+      // Weapon cycling: power_attack gesture cycles weapon
+      if (gesture.type === 'power_attack') {
+        this.weaponSystem.nextWeapon();
       }
     };
 
@@ -92,6 +108,7 @@ export class Engine {
     }
 
     this.grassCutter.update(delta);
+    this.weaponSystem.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 }

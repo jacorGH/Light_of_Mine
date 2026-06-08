@@ -46,6 +46,10 @@ export class GrassCutter {
     document.addEventListener('mousedown', (e) => {
       if (e.button === 0 && document.pointerLockElement) {
         this.slash();
+        // Also trigger weapon attack via engine
+        if (this.engine.weaponSystem) {
+          this.engine.weaponSystem.attack({ type: 'slash_right', power: 1 });
+        }
       }
     });
   }
