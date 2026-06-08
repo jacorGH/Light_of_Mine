@@ -33,6 +33,10 @@ export class WeaponSystem {
     this.cooldown = 0;
     this.attackTimer = 0;
     this.isAttacking = false;
+    this.attackDirection = 'right';
+
+    // Handedness: 'right' or 'left' — weapon offsets to dominant hand
+    this.dominantHand = 'right'; // TODO: ask player on first load
 
     // Projectiles in flight
     this.projectiles = [];
@@ -187,9 +191,10 @@ export class WeaponSystem {
     bow.add(arrowHead);
     this.weaponMeshes['bow'] = bow;
 
-    // Position all viewmodels in center-bottom of view (Daggerfall style)
+    // Position viewmodels offset to dominant hand
+    const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
     Object.values(this.weaponMeshes).forEach((mesh) => {
-      mesh.position.set(0, -0.3, -0.6);
+      mesh.position.set(handOffset, -0.3, -0.6);
       mesh.visible = false;
       this.viewmodelGroup.add(mesh);
     });
@@ -338,8 +343,10 @@ export class WeaponSystem {
 
     // Weapon idle bob
     const mesh = this.weaponMeshes[this.currentWeapon.id];
+    const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
     if (mesh && !this.isAttacking) {
       const t = performance.now() * 0.001;
+      mesh.position.x = handOffset;
       mesh.position.y = -0.3 + Math.sin(t * 2) * 0.008;
       mesh.position.z = -0.6;
       mesh.rotation.z = Math.sin(t * 1.5) * 0.015;

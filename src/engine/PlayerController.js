@@ -18,7 +18,7 @@ export class PlayerController {
     // Movement
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
-    this.speed = 8;
+    this.speed = 5; // Slower, more deliberate movement
     this.keys = { forward: false, backward: false, left: false, right: false };
 
     // Jump
@@ -124,11 +124,11 @@ export class PlayerController {
     const xRatio = clientX / w;
     const yRatio = clientY / h;
 
-    // Bottom 25% strip
-    if (yRatio > 0.75) {
-      if (xRatio < 0.33) return 'move';
-      if (xRatio > 0.67) return 'look';
-      return 'action'; // center bottom
+    // Bottom 30% strip (wider action zone)
+    if (yRatio > 0.70) {
+      if (xRatio < 0.30) return 'move';
+      if (xRatio > 0.70) return 'look';
+      return 'action'; // center bottom — wider area
     }
 
     // Everything else is combat zone
