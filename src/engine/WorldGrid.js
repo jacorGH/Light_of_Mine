@@ -34,7 +34,8 @@ export class WorldGrid {
    * Initialize — load the world grid manifest.
    */
   async init() {
-    const response = await fetch('/world/world_grid.json');
+    const base = import.meta.env.BASE_URL || '/';
+    const response = await fetch(`${base}world/world_grid.json`);
     if (!response.ok) {
       console.error('Failed to load world_grid.json');
       return;
