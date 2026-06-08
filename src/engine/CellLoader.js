@@ -25,7 +25,8 @@ export class CellLoader {
    * @returns {THREE.Group|null}
    */
   async loadCell(cellRef, cx, cy) {
-    const response = await fetch(`/world/${cellRef.file}`);
+    const base = import.meta.env.BASE_URL || '/';
+    const response = await fetch(`${base}world/${cellRef.file}`);
     if (!response.ok) {
       console.warn(`Cell file not found: ${cellRef.file}`);
       return null;
@@ -79,7 +80,8 @@ export class CellLoader {
    * @returns {THREE.Group|null}
    */
   async loadInterior(interiorId) {
-    const response = await fetch(`/world/interiors/${interiorId}.json`);
+    const base = import.meta.env.BASE_URL || '/';
+    const response = await fetch(`${base}world/interiors/${interiorId}.json`);
     if (!response.ok) {
       console.warn(`Interior not found: ${interiorId}`);
       return null;
