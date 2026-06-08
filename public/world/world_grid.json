@@ -1,0 +1,35 @@
+{
+  "name": "Island of Ashvael",
+  "description": "A volcanic island with beaches, forests, ruins, and a small fishing village.",
+  "cellSize": 64,
+  "environment": {
+    "ambientLight": { "color": "#ffffff", "intensity": 0.35 },
+    "directionalLight": {
+      "color": "#fff4e0",
+      "intensity": 1.0,
+      "direction": [-0.5, -1, -0.3]
+    },
+    "fog": { "color": "#b8ccdd", "near": 80, "far": 250 },
+    "skyColor": "#7bafd4"
+  },
+  "playerSpawn": {
+    "position": [32, 2, 32],
+    "rotation": [0, 0, 0]
+  },
+  "cells": [
+    { "x": 0, "y": 0, "file": "cells/0_0_beach_south.json", "biome": "beach", "name": "Southern Shore" },
+    { "x": 1, "y": 0, "file": "cells/1_0_beach_east.json", "biome": "beach", "name": "Eastern Tidepools" },
+    { "x": -1, "y": 0, "file": "cells/-1_0_coast_west.json", "biome": "coast", "name": "Western Cliffs" },
+    { "x": 0, "y": -1, "file": "cells/0_-1_forest.json", "biome": "forest", "name": "Ashwood Thicket" },
+    { "x": 1, "y": -1, "file": "cells/1_-1_ruins.json", "biome": "ruins", "name": "Old Watchtower" },
+    { "x": -1, "y": -1, "file": "cells/-1_-1_village.json", "biome": "village", "name": "Driftwood Village" },
+    { "x": 0, "y": -2, "file": "cells/0_-2_forest_deep.json", "biome": "forest", "name": "Deep Woods" },
+    { "x": -1, "y": -2, "file": "cells/-1_-2_swamp.json", "biome": "swamp", "name": "Bogmire Marsh" },
+    { "x": 1, "y": -2, "file": "cells/1_-2_mountain.json", "biome": "mountain", "name": "Ashpeak Foothills" }
+  ],
+  "interiors": [
+    { "id": "village_tavern", "file": "interiors/village_tavern.json", "name": "The Salty Dog" },
+    { "id": "watchtower_interior", "file": "interiors/watchtower_interior.json", "name": "Old Watchtower" },
+    { "id": "beach_cave", "file": "interiors/beach_cave.json", "name": "Tidal Grotto" }
+  ]
+}

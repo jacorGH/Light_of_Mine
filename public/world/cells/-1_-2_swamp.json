@@ -1,0 +1,74 @@
+{
+  "id": "-1_-2_swamp",
+  "name": "Bogmire Marsh",
+  "biome": "swamp",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#3a4a2a",
+    "roughness": 0.97,
+    "noiseScale": 0.04,
+    "noiseAmplitude": 2.0,
+    "blendRegions": [
+      { "edge": "east", "color": "#2d5a22", "width": 8 },
+      { "edge": "south", "color": "#6b8a4a", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "tree_dead_swamp_01", "position": [10, 0, -8], "rotation": [5, 30, 3], "scale": 1.2 },
+    { "asset": "tree_dead_swamp_01", "position": [25, 0, -15], "rotation": [3, 150, 0], "scale": 1.0 },
+    { "asset": "tree_dead_swamp_01", "position": [40, 0, -10], "rotation": [0, 270, 5], "scale": 1.4 },
+    { "asset": "tree_dead_swamp_01", "position": [15, 0, -35], "rotation": [4, 80, 0], "scale": 1.1 },
+    { "asset": "tree_dead_swamp_01", "position": [50, 0, -30], "rotation": [0, 200, 3], "scale": 0.9 },
+    { "asset": "swamp_water_01", "position": [20, -0.5, -20], "rotation": [0, 0, 0], "scale": 3.0 },
+    { "asset": "swamp_water_01", "position": [40, -0.5, -35], "rotation": [0, 45, 0], "scale": 2.5 },
+    { "asset": "lily_pad_cluster", "position": [22, 0, -18], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "lily_pad_cluster", "position": [38, 0, -33], "rotation": [0, 90, 0], "scale": 0.8 },
+    { "asset": "mushroom_glowing", "position": [12, 0, -12], "rotation": [0, 0, 0], "scale": 1.5 },
+    { "asset": "mushroom_glowing", "position": [35, 0, -25], "rotation": [0, 60, 0], "scale": 1.2 },
+    { "asset": "mushroom_glowing", "position": [48, 0, -40], "rotation": [0, 180, 0], "scale": 1.0 },
+    { "asset": "rock_mossy_01", "position": [30, 0, -12], "rotation": [0, 45, 0], "scale": 1.0 },
+    { "asset": "swamp_hut", "position": [45, 0, -20], "rotation": [0, -30, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "swamp_alchemist",
+      "asset": "npc_villager_male",
+      "name": "Fenwick Bogbrew",
+      "position": [43, 0, -18],
+      "rotation": [0, 150, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/alchemist_01.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "swamp_herb_01",
+      "asset": "item_herb",
+      "position": [18, 0.1, -22],
+      "contents": ["herb_nightshade"]
+    },
+    {
+      "id": "swamp_herb_02",
+      "asset": "item_herb",
+      "position": [42, 0.1, -38],
+      "contents": ["herb_swamproot"]
+    }
+  ],
+  "doors": [],
+  "triggers": [
+    {
+      "id": "bog_beast",
+      "type": "once",
+      "shape": "sphere",
+      "position": [25, 0, -25],
+      "radius": 8,
+      "event": "spawn_enemies",
+      "data": {
+        "enemies": [
+          { "asset": "enemy_bog_creature", "position": [23, -0.5, -22] },
+          { "asset": "enemy_bog_creature", "position": [28, -0.5, -28] }
+        ]
+      }
+    }
+  ]
+}

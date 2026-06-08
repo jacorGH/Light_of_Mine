@@ -1,0 +1,77 @@
+{
+  "id": "0_-1_forest",
+  "name": "Ashwood Thicket",
+  "biome": "forest",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#3d6b2e",
+    "roughness": 0.92,
+    "noiseScale": 0.1,
+    "noiseAmplitude": 4.0,
+    "blendRegions": [
+      { "edge": "south", "color": "#c2a86b", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "tree_pine_01", "position": [8, 0, -10], "rotation": [0, 30, 0], "scale": 1.2 },
+    { "asset": "tree_pine_01", "position": [15, 0, -18], "rotation": [0, 90, 0], "scale": 1.0 },
+    { "asset": "tree_pine_02", "position": [22, 0, -8], "rotation": [0, 200, 0], "scale": 1.4 },
+    { "asset": "tree_pine_01", "position": [30, 0, -25], "rotation": [0, 60, 0], "scale": 1.1 },
+    { "asset": "tree_pine_02", "position": [38, 0, -12], "rotation": [0, 150, 0], "scale": 1.3 },
+    { "asset": "tree_pine_01", "position": [45, 0, -30], "rotation": [0, 280, 0], "scale": 0.9 },
+    { "asset": "tree_pine_02", "position": [52, 0, -20], "rotation": [0, 45, 0], "scale": 1.5 },
+    { "asset": "tree_pine_01", "position": [12, 0, -35], "rotation": [0, 170, 0], "scale": 1.0 },
+    { "asset": "tree_pine_02", "position": [28, 0, -42], "rotation": [0, 310, 0], "scale": 1.2 },
+    { "asset": "tree_pine_01", "position": [40, 0, -45], "rotation": [0, 80, 0], "scale": 1.1 },
+    { "asset": "tree_pine_01", "position": [55, 0, -38], "rotation": [0, 220, 0], "scale": 1.3 },
+    { "asset": "tree_pine_02", "position": [5, 0, -48], "rotation": [0, 120, 0], "scale": 1.0 },
+    { "asset": "rock_mossy_01", "position": [20, 0, -30], "rotation": [0, 45, 0], "scale": 1.0 },
+    { "asset": "rock_mossy_01", "position": [48, 0, -35], "rotation": [0, 180, 0], "scale": 0.7 },
+    { "asset": "mushroom_cluster", "position": [18, 0, -22], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "mushroom_cluster", "position": [42, 0, -40], "rotation": [0, 90, 0], "scale": 0.8 },
+    { "asset": "fallen_log", "position": [32, 0, -15], "rotation": [0, 30, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "hunter_01",
+      "asset": "npc_villager_male",
+      "name": "Kira Woodwalker",
+      "position": [25, 0, -20],
+      "rotation": [0, 45, 0],
+      "behavior": "patrol",
+      "patrol_points": [[25, 0, -20], [35, 0, -25], [40, 0, -35], [30, 0, -40], [20, 0, -30]],
+      "dialogue": "dialogue/hunter_01.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "forest_herb_01",
+      "asset": "item_herb",
+      "position": [15, 0.1, -28],
+      "contents": ["herb_healing"]
+    },
+    {
+      "id": "forest_herb_02",
+      "asset": "item_herb",
+      "position": [44, 0.1, -42],
+      "contents": ["herb_stamina"]
+    }
+  ],
+  "doors": [],
+  "triggers": [
+    {
+      "id": "wolf_encounter",
+      "type": "once",
+      "shape": "sphere",
+      "position": [35, 0, -35],
+      "radius": 8,
+      "event": "spawn_enemies",
+      "data": {
+        "enemies": [
+          { "asset": "enemy_wolf_01", "position": [37, 0, -33] },
+          { "asset": "enemy_wolf_01", "position": [33, 0, -37] }
+        ]
+      }
+    }
+  ]
+}

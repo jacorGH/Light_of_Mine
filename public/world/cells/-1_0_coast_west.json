@@ -1,0 +1,47 @@
+{
+  "id": "-1_0_coast_west",
+  "name": "Western Cliffs",
+  "biome": "coast",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#7a7a6e",
+    "roughness": 0.95,
+    "noiseScale": 0.06,
+    "noiseAmplitude": 8.0,
+    "blendRegions": [
+      { "edge": "east", "color": "#c2a86b", "width": 8 },
+      { "edge": "north", "color": "#5a8a3c", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "rock_cliff_01", "position": [10, 0, 0], "rotation": [0, 0, 0], "scale": 3.0 },
+    { "asset": "rock_cliff_01", "position": [5, 0, -20], "rotation": [0, 120, 0], "scale": 2.5 },
+    { "asset": "rock_cliff_02", "position": [15, 0, -35], "rotation": [10, 60, 0], "scale": 2.8 },
+    { "asset": "rock_coastal_01", "position": [25, 0, 5], "rotation": [0, 200, 0], "scale": 1.5 },
+    { "asset": "rock_coastal_02", "position": [30, 0, -10], "rotation": [0, 90, 0], "scale": 1.2 },
+    { "asset": "dead_tree_01", "position": [40, 0, -15], "rotation": [0, 45, 0], "scale": 1.0 },
+    { "asset": "dead_tree_01", "position": [35, 0, -30], "rotation": [0, 180, 0], "scale": 0.8 },
+    { "asset": "torch_standing", "position": [42, 0, -25], "rotation": [0, 0, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "hermit_01",
+      "asset": "npc_villager_male",
+      "name": "Verek the Hermit",
+      "position": [38, 0, -22],
+      "rotation": [0, 90, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/hermit_01.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "cliff_chest",
+      "asset": "chest_wooden",
+      "position": [8, 3, -5],
+      "contents": ["scroll_waterbreathing", "gold_25"]
+    }
+  ],
+  "doors": [],
+  "triggers": []
+}

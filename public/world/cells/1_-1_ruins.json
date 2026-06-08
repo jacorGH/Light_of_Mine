@@ -1,0 +1,78 @@
+{
+  "id": "1_-1_ruins",
+  "name": "Old Watchtower",
+  "biome": "ruins",
+  "terrain": {
+    "type": "procedural",
+    "baseColor": "#5a6b4a",
+    "roughness": 0.9,
+    "noiseScale": 0.09,
+    "noiseAmplitude": 5.0,
+    "blendRegions": [
+      { "edge": "south", "color": "#b89e60", "width": 8 },
+      { "edge": "west", "color": "#3d6b2e", "width": 10 }
+    ]
+  },
+  "objects": [
+    { "asset": "ruin_wall_01", "position": [25, 0, -20], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "ruin_wall_01", "position": [30, 0, -20], "rotation": [0, 90, 0], "scale": 1.0 },
+    { "asset": "ruin_wall_02", "position": [25, 0, -30], "rotation": [0, 0, 5], "scale": 1.0 },
+    { "asset": "ruin_tower_base", "position": [28, 0, -25], "rotation": [0, 15, 0], "scale": 1.0 },
+    { "asset": "ruin_pillar_01", "position": [20, 0, -22], "rotation": [0, 0, 8], "scale": 1.0 },
+    { "asset": "ruin_pillar_01", "position": [35, 0, -28], "rotation": [5, 180, 0], "scale": 0.9 },
+    { "asset": "rock_mossy_01", "position": [18, 0, -18], "rotation": [0, 60, 0], "scale": 1.2 },
+    { "asset": "rock_mossy_01", "position": [38, 0, -32], "rotation": [0, 120, 0], "scale": 1.0 },
+    { "asset": "dead_tree_01", "position": [15, 0, -35], "rotation": [0, 45, 0], "scale": 1.0 },
+    { "asset": "dead_tree_01", "position": [40, 0, -15], "rotation": [0, 200, 0], "scale": 0.8 },
+    { "asset": "tree_pine_01", "position": [50, 0, -40], "rotation": [0, 90, 0], "scale": 1.0 },
+    { "asset": "tree_pine_01", "position": [8, 0, -45], "rotation": [0, 270, 0], "scale": 1.1 },
+    { "asset": "cobweb_large", "position": [26, 2, -22], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "torch_standing", "position": [27, 0, -24], "rotation": [0, 0, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "ghost_watcher",
+      "asset": "npc_ghost",
+      "name": "The Watcher",
+      "position": [28, 2, -25],
+      "rotation": [0, 0, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/ghost_watcher.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "ruin_chest",
+      "asset": "chest_ornate",
+      "position": [28, 0.3, -27],
+      "contents": ["sword_ancient", "gold_50", "scroll_identify"]
+    }
+  ],
+  "doors": [
+    {
+      "id": "watchtower_door",
+      "position": [28, 0, -24],
+      "rotation": [0, 15, 0],
+      "target": "watchtower_interior",
+      "exitPosition": [28, 2, -22],
+      "label": "Enter Watchtower"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "skeleton_ambush",
+      "type": "once",
+      "shape": "sphere",
+      "position": [28, 0, -25],
+      "radius": 10,
+      "event": "spawn_enemies",
+      "data": {
+        "enemies": [
+          { "asset": "enemy_skeleton_01", "position": [22, 0, -18] },
+          { "asset": "enemy_skeleton_01", "position": [34, 0, -30] },
+          { "asset": "enemy_skeleton_archer", "position": [20, 3, -28] }
+        ]
+      }
+    }
+  ]
+}
