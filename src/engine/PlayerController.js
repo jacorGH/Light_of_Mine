@@ -3,25 +3,25 @@ import * as THREE from 'three';
 /**
  * First-person player controller.
  * 
- * PC: WASD/Arrow movement + mouse look (pointer lock) + Space=jump + Click=attack
- * Mobile: 3-zone touch layout:
- *   - Left side (lower): Movement joystick
- *   - Upper center: Combat gesture zone (swipe = attack type)
- *   - Right side (lower): Camera look drag
- *   - Bottom center: Action buttons (jump, interact)
+ * PC: WASD movement + mouse look (pointer lock) + Space=jump + Click=attack
+ * Mobile layout (Daggerfall-inspired):
+ *   - Bottom-left 25%: Movement joystick
+ *   - Bottom-right 25%: Camera look
+ *   - Center (middle 50% of screen): Combat swipe zone (Daggerfall directional)
+ *   - Bottom center strip: Action wheel (swipe up=jump, swipe left/right=cycle weapon)
  */
 export class PlayerController {
   constructor(camera, domElement) {
     this.camera = camera;
     this.domElement = domElement;
 
-    // Movement state
+    // Movement
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
     this.speed = 8;
-    this.keys = { forward: false, backward: false, left: false, right: false, jump: false };
+    this.keys = { forward: false, backward: false, left: false, right: false };
 
-    // Jump state
+    // Jump
     this.isGrounded = true;
     this.jumpVelocity = 0;
     this.jumpForce = 8;
@@ -34,9 +34,8 @@ export class PlayerController {
     // Detect mobile
     this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // Combat gesture callback (set by Engine)
+    // Callbacks (set by Engine)
     this.onCombatGesture = null;
-    // Weapon cycle callback (set by Engine)
     this.onWeaponCycle = null;
 
     // ─── PC CONTROLS ───────────────────────────────────────────────
@@ -44,11 +43,9 @@ export class PlayerController {
       domElement.addEventListener('click', () => {
         domElement.requestPointerLock();
       });
-
       document.addEventListener('pointerlockchange', () => {
         this.isLocked = document.pointerLockElement === domElement;
       });
-
       document.addEventListener('mousemove', (e) => this.onMouseMove(e));
     }
 
@@ -56,10 +53,10 @@ export class PlayerController {
     document.addEventListener('keyup', (e) => this.onKeyUp(e));
 
     // ─── MOBILE CONTROLS ───────────────────────────────────────────
-    // Touch tracking per zone
     this.moveTouch = { id: null, startX: 0, startY: 0, currentX: 0, currentY: 0 };
     this.lookTouch = { id: null, startX: 0, startY: 0, currentX: 0, currentY: 0 };
-    this.gestureTouch = { id: null, startX: 0, startY: 0, startTime: 0 };
+    this.combatTouch = { id: null, startX: 0, startY: 0, startTime: 0 };
+    this.actionTouch = { id: null, startX: 0, startY: 0, startTime: 0 };
     this.moveInput = { x: 0, y: 0 };
 
     if (this.isMobile) {
@@ -71,7 +68,7 @@ export class PlayerController {
     }
   }
 
-  // ─── PC: Mouse Look ─────────────────────────────────────────────
+  // ─── PC ──────────────────────────────────────────────────────────
 
   onMouseMove(event) {
     if (!this.isLocked) return;
@@ -82,8 +79,6 @@ export class PlayerController {
     this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
     this.camera.quaternion.setFromEuler(this.euler);
   }
-
-  // ─── PC: Keyboard ───────────────────────────────────────────────
 
   onKeyDown(event) {
     switch (event.code) {
@@ -110,43 +105,38 @@ export class PlayerController {
     }
   }
 
-  // ─── MOBILE: 3-zone touch ───────────────────────────────────────
+  // ─── MOBILE ZONES ───────────────────────────────────────────────
+  //
+  // Layout:
+  //  ┌───────────────────────────────────┐
+  //  │                                   │
+  //  │         COMBAT SWIPE ZONE         │  top 75% center 60%
+  //  │        (Daggerfall swipes)        │
+  //  │                                   │
+  //  ├───────────┬───────────┬───────────┤  ← 75% down
+  //  │   MOVE    │  ACTION   │   LOOK    │  bottom 25%
+  //  │ (joystick)│(jump/cycle)│  (drag)   │
+  //  └───────────┴───────────┴───────────┘
 
-  /**
-   * Determine which zone a touch point belongs to:
-   * - 'move': left 35% of screen, bottom 65%
-   * - 'look': right 35% of screen, bottom 65%
-   * - 'gesture': upper center (top 40%, middle 50% width)
-   * - 'action': bottom center strip (jump/interact buttons)
-   */
   getTouchZone(clientX, clientY) {
     const w = window.innerWidth;
     const h = window.innerHeight;
     const xRatio = clientX / w;
     const yRatio = clientY / h;
 
-    // Upper center band: combat gestures
-    if (yRatio < 0.4 && xRatio > 0.25 && xRatio < 0.75) {
-      return 'gesture';
+    // Bottom 25% strip
+    if (yRatio > 0.75) {
+      if (xRatio < 0.33) return 'move';
+      if (xRatio > 0.67) return 'look';
+      return 'action'; // center bottom
     }
 
-    // Bottom center: action buttons area
-    if (yRatio > 0.85 && xRatio > 0.35 && xRatio < 0.65) {
-      return 'action';
-    }
-
-    // Left side: movement
-    if (xRatio < 0.4) {
-      return 'move';
-    }
-
-    // Right side: look
-    return 'look';
+    // Everything else is combat zone
+    return 'combat';
   }
 
   onTouchStart(event) {
     event.preventDefault();
-
     for (const touch of event.changedTouches) {
       const zone = this.getTouchZone(touch.clientX, touch.clientY);
 
@@ -156,38 +146,31 @@ export class PlayerController {
             this.moveTouch.id = touch.identifier;
             this.moveTouch.startX = touch.clientX;
             this.moveTouch.startY = touch.clientY;
-            this.moveTouch.currentX = touch.clientX;
-            this.moveTouch.currentY = touch.clientY;
             this.updateJoystickVisual(touch.clientX, touch.clientY);
           }
           break;
-
         case 'look':
           if (this.lookTouch.id === null) {
             this.lookTouch.id = touch.identifier;
-            this.lookTouch.startX = touch.clientX;
-            this.lookTouch.startY = touch.clientY;
             this.lookTouch.currentX = touch.clientX;
             this.lookTouch.currentY = touch.clientY;
           }
           break;
-
-        case 'gesture':
-          if (this.gestureTouch.id === null) {
-            this.gestureTouch.id = touch.identifier;
-            this.gestureTouch.startX = touch.clientX;
-            this.gestureTouch.startY = touch.clientY;
-            this.gestureTouch.startTime = performance.now();
-            this.showGestureIndicator(touch.clientX, touch.clientY);
+        case 'combat':
+          if (this.combatTouch.id === null) {
+            this.combatTouch.id = touch.identifier;
+            this.combatTouch.startX = touch.clientX;
+            this.combatTouch.startY = touch.clientY;
+            this.combatTouch.startTime = performance.now();
+            this.showSwipeTrail(touch.clientX, touch.clientY);
           }
           break;
-
         case 'action':
-          // Jump on tap in bottom center
-          if (this.isGrounded) {
-            this.jumpVelocity = this.jumpForce;
-            this.isGrounded = false;
-            this.flashJumpButton();
+          if (this.actionTouch.id === null) {
+            this.actionTouch.id = touch.identifier;
+            this.actionTouch.startX = touch.clientX;
+            this.actionTouch.startY = touch.clientY;
+            this.actionTouch.startTime = performance.now();
           }
           break;
       }
@@ -196,38 +179,30 @@ export class PlayerController {
 
   onTouchMove(event) {
     event.preventDefault();
-
     for (const touch of event.changedTouches) {
       if (touch.identifier === this.moveTouch.id) {
-        this.moveTouch.currentX = touch.clientX;
-        this.moveTouch.currentY = touch.clientY;
-
-        const dx = this.moveTouch.currentX - this.moveTouch.startX;
-        const dy = this.moveTouch.currentY - this.moveTouch.startY;
-        const maxRadius = 50;
-
-        this.moveInput.x = Math.max(-1, Math.min(1, dx / maxRadius));
-        this.moveInput.y = Math.max(-1, Math.min(1, dy / maxRadius));
-
-        this.updateJoystickKnob(this.moveInput.x * maxRadius, this.moveInput.y * maxRadius);
+        const dx = touch.clientX - this.moveTouch.startX;
+        const dy = touch.clientY - this.moveTouch.startY;
+        const maxR = 50;
+        this.moveInput.x = Math.max(-1, Math.min(1, dx / maxR));
+        this.moveInput.y = Math.max(-1, Math.min(1, dy / maxR));
+        this.updateJoystickKnob(this.moveInput.x * maxR, this.moveInput.y * maxR);
 
       } else if (touch.identifier === this.lookTouch.id) {
         const dx = touch.clientX - this.lookTouch.currentX;
         const dy = touch.clientY - this.lookTouch.currentY;
-
         const sensitivity = 0.004;
         this.euler.setFromQuaternion(this.camera.quaternion);
         this.euler.y -= dx * sensitivity;
         this.euler.x -= dy * sensitivity;
         this.euler.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.euler.x));
         this.camera.quaternion.setFromEuler(this.euler);
-
         this.lookTouch.currentX = touch.clientX;
         this.lookTouch.currentY = touch.clientY;
 
-      } else if (touch.identifier === this.gestureTouch.id) {
-        // Update gesture trail visual
-        this.updateGestureIndicator(touch.clientX, touch.clientY);
+      } else if (touch.identifier === this.combatTouch.id) {
+        this.updateSwipeTrail(touch.clientX, touch.clientY);
+
       }
     }
   }
@@ -243,246 +218,177 @@ export class PlayerController {
       } else if (touch.identifier === this.lookTouch.id) {
         this.lookTouch.id = null;
 
-      } else if (touch.identifier === this.gestureTouch.id) {
-        // Resolve the gesture
-        this.resolveGesture(touch.clientX, touch.clientY);
-        this.gestureTouch.id = null;
-        this.hideGestureIndicator();
+      } else if (touch.identifier === this.combatTouch.id) {
+        this.resolveCombatSwipe(touch.clientX, touch.clientY);
+        this.combatTouch.id = null;
+        this.hideSwipeTrail();
+
+      } else if (touch.identifier === this.actionTouch.id) {
+        this.resolveAction(touch.clientX, touch.clientY);
+        this.actionTouch.id = null;
       }
     }
   }
 
-  // ─── GESTURE RECOGNITION ────────────────────────────────────────
+  // ─── DAGGERFALL COMBAT ──────────────────────────────────────────
+  // Swipe direction = attack direction. The sword swings the way you swipe.
 
-  /**
-   * Analyze the swipe and determine the attack/action type:
-   * - Short center-up tap: Jab (quick thrust)
-   * - Swipe up-right: Slash right
-   * - Swipe up-left: Slash left
-   * - Swipe down: Overhead/power attack
-   * - Swipe left: Sweep left
-   * - Swipe right: Sweep right
-   * - Swipe up: Uppercut
-   * - Short tap (no movement): Block/parry
-   */
-  resolveGesture(endX, endY) {
-    const dx = endX - this.gestureTouch.startX;
-    const dy = endY - this.gestureTouch.startY;
+  resolveCombatSwipe(endX, endY) {
+    const dx = endX - this.combatTouch.startX;
+    const dy = endY - this.combatTouch.startY;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    const elapsed = performance.now() - this.gestureTouch.startTime;
+    const elapsed = performance.now() - this.combatTouch.startTime;
 
-    let gesture = null;
-
-    if (dist < 15) {
-      // Tap — no significant movement
-      if (elapsed < 200) {
-        gesture = { type: 'jab', label: 'Jab' };
-      } else {
-        gesture = { type: 'block', label: 'Block' };
+    if (dist < 12) {
+      // Tap = jab/thrust
+      if (this.onCombatGesture) {
+        this.onCombatGesture({ type: 'thrust', direction: 'center', label: 'Thrust', power: 0.5 });
       }
-    } else {
-      // Swipe — determine direction
-      const angle = Math.atan2(-dy, dx); // -dy because screen Y is inverted
-      const deg = ((angle * 180 / Math.PI) + 360) % 360;
-
-      // Speed factor — faster swipes = more power
-      const speed = dist / Math.max(elapsed, 1);
-      const power = Math.min(1, speed / 2);
-
-      if (deg >= 60 && deg < 120) {
-        // Up
-        gesture = { type: 'uppercut', label: 'Uppercut', power };
-      } else if (deg >= 30 && deg < 60) {
-        // Up-right
-        gesture = { type: 'slash_right', label: 'Slash →', power };
-      } else if (deg >= 120 && deg < 150) {
-        // Up-left
-        gesture = { type: 'slash_left', label: '← Slash', power };
-      } else if (deg >= 240 && deg < 300) {
-        // Down — short/slow = cycle weapon, fast = power attack
-        if (speed > 0.8) {
-          gesture = { type: 'power_attack', label: 'Power ↓', power };
-        } else {
-          // Cycle weapon
-          if (this.onWeaponCycle) this.onWeaponCycle(1);
-          return; // Don't fire combat gesture
-        }
-      } else if (deg >= 330 || deg < 30) {
-        // Right
-        gesture = { type: 'sweep_right', label: 'Sweep →', power };
-      } else if (deg >= 150 && deg < 210) {
-        // Left
-        gesture = { type: 'sweep_left', label: '← Sweep', power };
-      } else if (deg >= 210 && deg < 240) {
-        // Down-left
-        gesture = { type: 'slash_left', label: '← Slash ↓', power };
-      } else {
-        // Down-right
-        gesture = { type: 'slash_right', label: 'Slash ↓→', power };
-      }
+      this.showCombatLabel('Thrust');
+      return;
     }
 
-    if (gesture) {
-      this.showGestureLabel(gesture.label);
+    // Determine swipe direction (screen-space = attack direction)
+    const angle = Math.atan2(-dy, dx); // -dy so up = positive
+    const deg = ((angle * 180 / Math.PI) + 360) % 360;
+    const speed = dist / Math.max(elapsed, 1);
+    const power = Math.min(1, speed / 1.5);
 
-      // Fire callback for combat system
-      if (this.onCombatGesture) {
-        this.onCombatGesture(gesture);
+    let type, direction, label;
+
+    if (deg >= 60 && deg < 120) {
+      type = 'slash_up'; direction = 'up'; label = '↑ Slash Up';
+    } else if (deg >= 120 && deg < 165) {
+      type = 'slash_up_left'; direction = 'up-left'; label = '↖ Slash';
+    } else if (deg >= 15 && deg < 60) {
+      type = 'slash_up_right'; direction = 'up-right'; label = '↗ Slash';
+    } else if (deg >= 240 && deg < 300) {
+      type = 'slash_down'; direction = 'down'; label = '↓ Slash Down';
+    } else if (deg >= 195 && deg < 240) {
+      type = 'slash_down_left'; direction = 'down-left'; label = '↙ Slash';
+    } else if (deg >= 300 && deg < 345) {
+      type = 'slash_down_right'; direction = 'down-right'; label = '↘ Slash';
+    } else if (deg >= 165 && deg < 195) {
+      type = 'slash_left'; direction = 'left'; label = '← Sweep';
+    } else {
+      type = 'slash_right'; direction = 'right'; label = '→ Sweep';
+    }
+
+    this.showCombatLabel(label);
+
+    if (this.onCombatGesture) {
+      this.onCombatGesture({ type, direction, label, power });
+    }
+  }
+
+  // ─── ACTION WHEEL (bottom center) ──────────────────────────────
+  // Swipe up = jump, swipe left = prev weapon, swipe right = next weapon, tap = interact
+
+  resolveAction(endX, endY) {
+    const dx = endX - this.actionTouch.startX;
+    const dy = endY - this.actionTouch.startY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 15) {
+      // Tap = interact (future)
+      return;
+    }
+
+    const angle = Math.atan2(-dy, dx);
+    const deg = ((angle * 180 / Math.PI) + 360) % 360;
+
+    if (deg >= 45 && deg < 135) {
+      // Swipe up = jump
+      if (this.isGrounded) {
+        this.jumpVelocity = this.jumpForce;
+        this.isGrounded = false;
+        this.flashActionBtn('JUMP');
       }
+    } else if (deg >= 135 && deg < 225) {
+      // Swipe left = prev weapon
+      if (this.onWeaponCycle) this.onWeaponCycle(-1);
+      this.flashActionBtn('◀ Prev');
+    } else if (deg >= 315 || deg < 45) {
+      // Swipe right = next weapon
+      if (this.onWeaponCycle) this.onWeaponCycle(1);
+      this.flashActionBtn('Next ▶');
+    } else {
+      // Swipe down = (reserved, maybe crouch later)
     }
   }
 
   // ─── MOBILE UI ──────────────────────────────────────────────────
 
   createMobileUI() {
-    // ─── Joystick (left side) ──────────────────
+    // Joystick
     this.joystickBase = document.createElement('div');
     Object.assign(this.joystickBase.style, {
-      position: 'fixed',
-      width: '120px',
-      height: '120px',
-      borderRadius: '50%',
-      border: '2px solid rgba(255,255,255,0.3)',
-      background: 'rgba(255,255,255,0.08)',
-      display: 'none',
-      zIndex: '1000',
-      pointerEvents: 'none',
+      position: 'fixed', width: '100px', height: '100px', borderRadius: '50%',
+      border: '2px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.06)',
+      display: 'none', zIndex: '1000', pointerEvents: 'none',
       transform: 'translate(-50%, -50%)',
     });
     document.body.appendChild(this.joystickBase);
 
     this.joystickKnob = document.createElement('div');
     Object.assign(this.joystickKnob.style, {
-      position: 'absolute',
-      width: '50px',
-      height: '50px',
-      borderRadius: '50%',
-      background: 'rgba(255,255,255,0.5)',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      pointerEvents: 'none',
+      position: 'absolute', width: '44px', height: '44px', borderRadius: '50%',
+      background: 'rgba(255,255,255,0.45)', top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)', pointerEvents: 'none',
     });
     this.joystickBase.appendChild(this.joystickKnob);
 
-    // ─── Combat gesture zone indicator (upper center) ──────
-    this.gestureZone = document.createElement('div');
-    Object.assign(this.gestureZone.style, {
-      position: 'fixed',
-      top: '5%',
-      left: '25%',
-      width: '50%',
-      height: '35%',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: '12px',
-      background: 'rgba(255,255,255,0.03)',
-      zIndex: '999',
-      pointerEvents: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+    // Combat label (center, fades)
+    this.combatLabel = document.createElement('div');
+    Object.assign(this.combatLabel.style, {
+      position: 'fixed', top: '45%', left: '50%', transform: 'translateX(-50%)',
+      color: '#ffaa44', fontFamily: 'monospace', fontWeight: 'bold', fontSize: '18px',
+      textShadow: '0 0 10px rgba(255,150,50,0.8)', zIndex: '1002', pointerEvents: 'none',
+      opacity: '0', transition: 'opacity 0.2s',
     });
-    // Zone label
-    const zoneLabel = document.createElement('div');
-    Object.assign(zoneLabel.style, {
-      color: 'rgba(255,255,255,0.2)',
-      fontFamily: 'monospace',
-      fontSize: '11px',
-      textTransform: 'uppercase',
-      letterSpacing: '2px',
-    });
-    zoneLabel.textContent = 'combat';
-    this.gestureZone.appendChild(zoneLabel);
-    document.body.appendChild(this.gestureZone);
+    document.body.appendChild(this.combatLabel);
 
-    // ─── Gesture trail dot ─────────────────────
-    this.gestureDot = document.createElement('div');
-    Object.assign(this.gestureDot.style, {
-      position: 'fixed',
-      width: '20px',
-      height: '20px',
-      borderRadius: '50%',
-      background: 'rgba(255,100,50,0.7)',
-      boxShadow: '0 0 10px rgba(255,100,50,0.5)',
-      display: 'none',
-      zIndex: '1001',
-      pointerEvents: 'none',
+    // Swipe trail dot
+    this.swipeTrail = document.createElement('div');
+    Object.assign(this.swipeTrail.style, {
+      position: 'fixed', width: '16px', height: '16px', borderRadius: '50%',
+      background: 'rgba(255,200,100,0.6)', boxShadow: '0 0 8px rgba(255,150,50,0.4)',
+      display: 'none', zIndex: '1001', pointerEvents: 'none',
       transform: 'translate(-50%, -50%)',
     });
-    document.body.appendChild(this.gestureDot);
+    document.body.appendChild(this.swipeTrail);
 
-    // ─── Gesture label (shows attack name briefly) ─────────
-    this.gestureLabel = document.createElement('div');
-    Object.assign(this.gestureLabel.style, {
-      position: 'fixed',
-      top: '42%',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      color: '#ff8844',
-      fontFamily: 'monospace',
-      fontWeight: 'bold',
-      fontSize: '16px',
-      textShadow: '0 0 8px rgba(255,100,50,0.8)',
-      zIndex: '1002',
-      pointerEvents: 'none',
-      opacity: '0',
-      transition: 'opacity 0.3s',
+    // Action button area indicator
+    this.actionBtn = document.createElement('div');
+    Object.assign(this.actionBtn.style, {
+      position: 'fixed', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
+      width: '80px', height: '40px', borderRadius: '20px',
+      border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)',
+      zIndex: '999', pointerEvents: 'none', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+      color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', fontSize: '10px',
     });
-    document.body.appendChild(this.gestureLabel);
+    this.actionBtn.textContent = '↑ JMP  ←→ WPN';
+    document.body.appendChild(this.actionBtn);
 
-    // ─── Jump button (bottom center) ───────────
-    this.jumpBtn = document.createElement('div');
-    Object.assign(this.jumpBtn.style, {
-      position: 'fixed',
-      bottom: '3%',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '60px',
-      height: '60px',
-      borderRadius: '50%',
-      border: '2px solid rgba(255,255,255,0.35)',
-      background: 'rgba(255,255,255,0.08)',
-      zIndex: '1000',
-      pointerEvents: 'none',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: 'rgba(255,255,255,0.5)',
-      fontFamily: 'monospace',
-      fontSize: '11px',
+    // Zone divider line (subtle)
+    const divider = document.createElement('div');
+    Object.assign(divider.style, {
+      position: 'fixed', bottom: '25%', left: '0', width: '100%', height: '1px',
+      background: 'rgba(255,255,255,0.08)', zIndex: '998', pointerEvents: 'none',
     });
-    this.jumpBtn.textContent = 'JUMP';
-    document.body.appendChild(this.jumpBtn);
+    document.body.appendChild(divider);
 
-    // ─── Instructions ──────────────────────────
+    // Instructions (fades)
     const hint = document.createElement('div');
     Object.assign(hint.style, {
-      position: 'fixed',
-      bottom: '75px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      color: 'rgba(255,255,255,0.5)',
-      fontFamily: 'monospace',
-      fontSize: '11px',
-      textAlign: 'center',
-      zIndex: '999',
-      pointerEvents: 'none',
-      lineHeight: '1.6',
+      position: 'fixed', top: '8px', left: '50%', transform: 'translateX(-50%)',
+      color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '10px',
+      textAlign: 'center', zIndex: '999', pointerEvents: 'none', lineHeight: '1.5',
     });
-    hint.innerHTML = 'Left: Move | Right: Look<br>Top: Swipe to Attack | Center: Jump';
+    hint.innerHTML = 'Swipe center to attack | Bottom: Move · Action · Look';
     document.body.appendChild(hint);
-
-    setTimeout(() => {
-      hint.style.transition = 'opacity 1s';
-      hint.style.opacity = '0';
-      setTimeout(() => hint.remove(), 1000);
-    }, 6000);
-
-    // Fade the zone outline after 10s
-    setTimeout(() => {
-      this.gestureZone.style.transition = 'opacity 2s';
-      this.gestureZone.style.opacity = '0.3';
-    }, 10000);
+    setTimeout(() => { hint.style.transition = 'opacity 1.5s'; hint.style.opacity = '0'; setTimeout(() => hint.remove(), 1500); }, 5000);
   }
 
   updateJoystickVisual(x, y) {
@@ -490,44 +396,33 @@ export class PlayerController {
     this.joystickBase.style.left = x + 'px';
     this.joystickBase.style.top = y + 'px';
   }
-
   updateJoystickKnob(dx, dy) {
     this.joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   }
-
   hideJoystick() {
     this.joystickBase.style.display = 'none';
     this.joystickKnob.style.transform = 'translate(-50%, -50%)';
   }
-
-  showGestureIndicator(x, y) {
-    this.gestureDot.style.display = 'block';
-    this.gestureDot.style.left = x + 'px';
-    this.gestureDot.style.top = y + 'px';
+  showSwipeTrail(x, y) {
+    this.swipeTrail.style.display = 'block';
+    this.swipeTrail.style.left = x + 'px';
+    this.swipeTrail.style.top = y + 'px';
   }
-
-  updateGestureIndicator(x, y) {
-    this.gestureDot.style.left = x + 'px';
-    this.gestureDot.style.top = y + 'px';
+  updateSwipeTrail(x, y) {
+    this.swipeTrail.style.left = x + 'px';
+    this.swipeTrail.style.top = y + 'px';
   }
-
-  hideGestureIndicator() {
-    this.gestureDot.style.display = 'none';
+  hideSwipeTrail() { this.swipeTrail.style.display = 'none'; }
+  showCombatLabel(text) {
+    this.combatLabel.textContent = text;
+    this.combatLabel.style.opacity = '1';
+    setTimeout(() => { this.combatLabel.style.opacity = '0'; }, 500);
   }
-
-  showGestureLabel(text) {
-    this.gestureLabel.textContent = text;
-    this.gestureLabel.style.opacity = '1';
-    setTimeout(() => {
-      this.gestureLabel.style.opacity = '0';
-    }, 600);
-  }
-
-  flashJumpButton() {
-    this.jumpBtn.style.background = 'rgba(255,255,255,0.3)';
-    setTimeout(() => {
-      this.jumpBtn.style.background = 'rgba(255,255,255,0.08)';
-    }, 150);
+  flashActionBtn(text) {
+    const orig = this.actionBtn.textContent;
+    this.actionBtn.textContent = text;
+    this.actionBtn.style.background = 'rgba(255,255,255,0.15)';
+    setTimeout(() => { this.actionBtn.textContent = orig; this.actionBtn.style.background = 'rgba(255,255,255,0.05)'; }, 400);
   }
 
   // ─── TERRAIN FOLLOWING ────────────────────────────────────────────
@@ -539,8 +434,6 @@ export class PlayerController {
     this.groundHeight = 0;
     this.playerHeight = 1.7;
     this.heightSmoothing = 10;
-
-    // Cached terrain meshes (refreshed periodically)
     this.terrainMeshes = [];
     this.terrainCacheTimer = 0;
   }
@@ -548,83 +441,60 @@ export class PlayerController {
   refreshTerrainCache() {
     this.terrainMeshes = [];
     this.scene.traverse((obj) => {
-      if (obj.isMesh && obj.name === 'terrain') {
-        this.terrainMeshes.push(obj);
-      }
+      if (obj.isMesh && obj.name === 'terrain') this.terrainMeshes.push(obj);
     });
   }
 
   getGroundHeight() {
     if (!this.scene || !this.raycaster) return this.groundHeight;
-
-    // Refresh terrain cache every ~1 second (cells load/unload)
     this.terrainCacheTimer -= 1;
     if (this.terrainCacheTimer <= 0 || this.terrainMeshes.length === 0) {
       this.refreshTerrainCache();
-      this.terrainCacheTimer = 60; // ~60 frames
+      this.terrainCacheTimer = 60;
     }
-
     const origin = this.camera.position.clone();
     origin.y += 20;
-
     this.raycaster.set(origin, new THREE.Vector3(0, -1, 0));
-
     const hits = this.raycaster.intersectObjects(this.terrainMeshes, false);
-    if (hits.length > 0) {
-      return hits[0].point.y;
-    }
-
+    if (hits.length > 0) return hits[0].point.y;
     return this.groundHeight;
   }
 
   // ─── UPDATE ─────────────────────────────────────────────────────
 
   update(delta) {
-    // Deceleration
     this.velocity.x -= this.velocity.x * 10 * delta;
     this.velocity.z -= this.velocity.z * 10 * delta;
 
-    // Direction from keyboard
     this.direction.z = Number(this.keys.forward) - Number(this.keys.backward);
     this.direction.x = Number(this.keys.right) - Number(this.keys.left);
 
-    // Add mobile joystick input
     if (this.isMobile) {
       this.direction.x += this.moveInput.x;
       this.direction.z += -this.moveInput.y;
     }
-
     this.direction.normalize();
 
-    if (Math.abs(this.direction.z) > 0.01) {
-      this.velocity.z -= this.direction.z * this.speed * delta;
-    }
-    if (Math.abs(this.direction.x) > 0.01) {
-      this.velocity.x += this.direction.x * this.speed * delta;
-    }
+    if (Math.abs(this.direction.z) > 0.01) this.velocity.z -= this.direction.z * this.speed * delta;
+    if (Math.abs(this.direction.x) > 0.01) this.velocity.x += this.direction.x * this.speed * delta;
 
-    // Move camera in its local space
     const forward = new THREE.Vector3();
     this.camera.getWorldDirection(forward);
     forward.y = 0;
     forward.normalize();
-
     const right = new THREE.Vector3();
     right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
     this.camera.position.addScaledVector(forward, -this.velocity.z);
     this.camera.position.addScaledVector(right, this.velocity.x);
 
-    // Terrain following + jump physics
+    // Terrain + jump
     const targetGroundY = this.getGroundHeight();
     this.groundHeight += (targetGroundY - this.groundHeight) * Math.min(1, this.heightSmoothing * delta);
 
-    // Apply jump
     if (!this.isGrounded) {
       this.jumpVelocity += this.gravity * delta;
       this.camera.position.y += this.jumpVelocity * delta;
-
-      // Check if landed
       const groundLevel = this.groundHeight + this.playerHeight;
       if (this.camera.position.y <= groundLevel) {
         this.camera.position.y = groundLevel;

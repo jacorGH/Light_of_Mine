@@ -187,9 +187,9 @@ export class WeaponSystem {
     bow.add(arrowHead);
     this.weaponMeshes['bow'] = bow;
 
-    // Position all viewmodels in lower-right of view
+    // Position all viewmodels in center-bottom of view (Daggerfall style)
     Object.values(this.weaponMeshes).forEach((mesh) => {
-      mesh.position.set(0.25, -0.25, -0.5);
+      mesh.position.set(0, -0.3, -0.6);
       mesh.visible = false;
       this.viewmodelGroup.add(mesh);
     });
@@ -244,6 +244,7 @@ export class WeaponSystem {
     this.cooldown = weapon.cooldown;
     this.isAttacking = true;
     this.attackTimer = 0;
+    this.attackDirection = gesture.direction || 'right';
 
     if (weapon.type === 'projectile') {
       this.projectileAttack();
@@ -339,38 +340,61 @@ export class WeaponSystem {
     const mesh = this.weaponMeshes[this.currentWeapon.id];
     if (mesh && !this.isAttacking) {
       const t = performance.now() * 0.001;
-      mesh.position.y = -0.25 + Math.sin(t * 2) * 0.008;
-      mesh.rotation.z = Math.sin(t * 1.5) * 0.02;
+      mesh.position.y = -0.3 + Math.sin(t * 2) * 0.008;
+      mesh.position.z = -0.6;
+      mesh.rotation.z = Math.sin(t * 1.5) * 0.015;
+      mesh.rotation.x = 0;
+      mesh.rotation.y = 0;
     }
 
-    // Attack animation
+    // Attack animation — directional (Daggerfall style)
     if (this.isAttacking && mesh) {
       this.attackTimer += delta;
       const weapon = this.currentWeapon;
       const duration = weapon.cooldown * 0.7;
       const t = this.attackTimer / duration;
+      const dir = this.attackDirection || 'right';
 
-      if (t < 0.4) {
-        const swing = t / 0.4;
+      // Get swing angles based on direction
+      let swingX = 0, swingY = 0, swingZ = 0, thrustZ = 0;
+      switch (dir) {
+        case 'up': swingX = -1.4; break;
+        case 'down': swingX = 1.4; break;
+        case 'left': swingZ = 1.2; swingY = 0.4; break;
+        case 'right': swingZ = -1.2; swingY = -0.4; break;
+        case 'up-left': swingX = -1.0; swingZ = 0.8; break;
+        case 'up-right': swingX = -1.0; swingZ = -0.8; break;
+        case 'down-left': swingX = 0.8; swingZ = 0.8; break;
+        case 'down-right': swingX = 0.8; swingZ = -0.8; break;
+        case 'center': thrustZ = -0.3; break; // thrust forward
+        default: swingZ = -1.2; break;
+      }
+
+      if (t < 0.35) {
+        const swing = t / 0.35;
         if (weapon.type === 'melee') {
-          mesh.rotation.x = -swing * 1.2;
-          mesh.position.z = -0.5 - swing * 0.2;
+          mesh.rotation.x = swing * swingX;
+          mesh.rotation.z = swing * swingZ;
+          mesh.rotation.y = swing * swingY;
+          mesh.position.z = -0.6 + swing * thrustZ;
         } else {
-          mesh.position.z = -0.5 + swing * 0.15;
+          mesh.position.z = -0.6 + swing * 0.15;
           mesh.rotation.x = -swing * 0.3;
         }
       } else if (t < 1.0) {
-        const ret = (t - 0.4) / 0.6;
+        const ret = (t - 0.35) / 0.65;
         if (weapon.type === 'melee') {
-          mesh.rotation.x = -(1 - ret) * 1.2;
-          mesh.position.z = -0.5 - (1 - ret) * 0.2;
+          mesh.rotation.x = (1 - ret) * swingX;
+          mesh.rotation.z = (1 - ret) * swingZ;
+          mesh.rotation.y = (1 - ret) * swingY;
+          mesh.position.z = -0.6 + (1 - ret) * thrustZ;
         } else {
-          mesh.position.z = -0.5 + (1 - ret) * 0.15;
+          mesh.position.z = -0.6 + (1 - ret) * 0.15;
           mesh.rotation.x = -(1 - ret) * 0.3;
         }
       } else {
-        mesh.rotation.x = 0;
-        mesh.position.z = -0.5;
+        mesh.rotation.set(0, 0, 0);
+        mesh.position.z = -0.6;
         this.isAttacking = false;
       }
     }

@@ -3,6 +3,7 @@ import { PlayerController } from './PlayerController.js';
 import { WorldGrid } from './WorldGrid.js';
 import { GrassCutter } from './GrassCutter.js';
 import { WeaponSystem } from './WeaponSystem.js';
+import { Inventory } from './Inventory.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and world streaming.
@@ -66,6 +67,9 @@ export class Engine {
 
     // Weapon system
     this.weaponSystem = new WeaponSystem(this);
+
+    // Inventory
+    this.inventory = new Inventory(this);
 
     // Wire combat input — mobile gesture only (PC goes through GrassCutter click)
     this.player.onCombatGesture = (gesture) => {

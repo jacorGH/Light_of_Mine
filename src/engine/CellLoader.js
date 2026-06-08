@@ -239,91 +239,103 @@ export class CellLoader {
   // ─── GRASS ───────────────────────────────────────────────────────
 
   /**
-   * Spawn cuttable grass blades across the cell terrain using InstancedMesh
-   * for performance. Grass density varies by biome.
+   * Spawn cuttable grass CLUMPS (Zelda-style bushes) across the cell.
+   * Each clump is a small cluster of blades rendered as a single mesh.
+   * When hit, the whole clump disappears with a poof animation.
    */
   spawnGrass(cellData, group) {
     const biome = cellData.biome || 'forest';
 
-    // Grass density per biome
-    const densityMap = {
-      beach: 80,
-      coast: 60,
-      forest: 600,
-      village: 150,
-      swamp: 200,
-      mountain: 40,
-      ruins: 100,
+    // Clump count per biome
+    const clumpCountMap = {
+      beach: 10,
+      coast: 8,
+      forest: 60,
+      village: 20,
+      swamp: 25,
+      mountain: 5,
+      ruins: 12,
     };
-    const grassCount = densityMap[biome] || 150;
+    const clumpCount = clumpCountMap[biome] || 15;
+    if (clumpCount === 0) return;
 
-    if (grassCount === 0) return;
-
-    // Create a grass blade geometry — taller in forests
     const isForest = biome === 'forest';
-    const bladeHeight = isForest ? 1.2 : 0.7;
-    const bladeMidHeight = isForest ? 0.7 : 0.4;
-    const bladeGeo = new THREE.BufferGeometry();
-    const bladeVerts = new Float32Array([
-      -0.05, 0, 0,
-       0.05, 0, 0,
-       0.03, bladeMidHeight, 0,
-      -0.03, bladeMidHeight, 0,
-       0.0, bladeHeight, 0,
-    ]);
-    const bladeIndices = [0, 1, 2, 0, 2, 3, 3, 2, 4];
-    bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladeVerts, 3));
-    bladeGeo.setIndex(bladeIndices);
-    bladeGeo.computeVertexNormals();
-
     const grassColor = isForest ? '#2a7a1a' : (biome === 'swamp' ? '#3a6a2a' : '#4a9a2a');
-    const grassMat = new THREE.MeshStandardMaterial({
-      color: grassColor,
+
+    for (let i = 0; i < clumpCount; i++) {
+      const clump = this.buildGrassClump(isForest, grassColor);
+
+      // Random position within cell
+      const lx = (Math.random() - 0.5) * (this.cellSize - 6);
+      const lz = (Math.random() - 0.5) * (this.cellSize - 6);
+      const wx = lx + group.position.x;
+      const wz = lz + group.position.z;
+      const height = this.getTerrainHeight(wx, wz);
+
+      clump.position.set(lx, height, lz);
+      clump.rotation.y = Math.random() * Math.PI * 2;
+
+      clump.userData = {
+        type: 'grass_clump',
+        worldX: wx,
+        worldZ: wz,
+        cut: false,
+      };
+
+      group.add(clump);
+    }
+  }
+
+  /**
+   * Build a single grass clump (bushy cluster of triangles).
+   */
+  buildGrassClump(tall, color) {
+    const clump = new THREE.Group();
+    clump.name = 'grass_clump';
+
+    const bladeCount = tall ? 12 : 8;
+    const baseHeight = tall ? 1.0 : 0.6;
+    const spread = tall ? 0.5 : 0.35;
+
+    const mat = new THREE.MeshStandardMaterial({
+      color,
       roughness: 0.8,
       flatShading: true,
       side: THREE.DoubleSide,
     });
 
-    const grassMesh = new THREE.InstancedMesh(bladeGeo, grassMat, grassCount);
-    grassMesh.name = 'grass';
-    grassMesh.userData = { type: 'grass', blades: [] };
-    grassMesh.castShadow = false;
-    grassMesh.receiveShadow = false;
+    for (let i = 0; i < bladeCount; i++) {
+      const h = baseHeight + Math.random() * 0.4;
+      const w = 0.12 + Math.random() * 0.08;
 
-    const dummy = new THREE.Object3D();
+      // Triangle blade
+      const geo = new THREE.BufferGeometry();
+      const verts = new Float32Array([
+        -w, 0, 0,
+         w, 0, 0,
+         0, h, 0,
+      ]);
+      geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+      geo.computeVertexNormals();
 
-    for (let i = 0; i < grassCount; i++) {
-      const lx = (Math.random() - 0.5) * (this.cellSize - 4);
-      const lz = (Math.random() - 0.5) * (this.cellSize - 4);
-
-      const wx = lx + group.position.x;
-      const wz = lz + group.position.z;
-
-      // Use the same global height function as terrain
-      const height = this.getTerrainHeight(wx, wz);
-
-      dummy.position.set(lx, height, lz);
-      dummy.rotation.set(
-        (Math.random() - 0.5) * 0.2,
-        Math.random() * Math.PI * 2,
-        0
+      const blade = new THREE.Mesh(geo, mat);
+      blade.position.set(
+        (Math.random() - 0.5) * spread * 2,
+        0,
+        (Math.random() - 0.5) * spread * 2
       );
-      const scale = 0.8 + Math.random() * 1.2;
-      dummy.scale.set(scale, scale, scale);
-
-      dummy.updateMatrix();
-      grassMesh.setMatrixAt(i, dummy.matrix);
-
-      grassMesh.userData.blades.push({
-        index: i,
-        worldX: wx,
-        worldZ: wz,
-        cut: false,
-      });
+      blade.rotation.y = Math.random() * Math.PI;
+      blade.rotation.x = (Math.random() - 0.5) * 0.3;
+      clump.add(blade);
     }
 
-    grassMesh.instanceMatrix.needsUpdate = true;
-    group.add(grassMesh);
+    // Add a low base sphere to give it volume
+    const baseGeo = new THREE.SphereGeometry(spread, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+    const baseMesh = new THREE.Mesh(baseGeo, mat);
+    baseMesh.scale.y = 0.4;
+    clump.add(baseMesh);
+
+    return clump;
   }
 
   // ─── OBJECTS ─────────────────────────────────────────────────────
