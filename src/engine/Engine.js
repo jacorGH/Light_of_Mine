@@ -63,6 +63,14 @@ export class Engine {
     // Grass cutting system
     this.grassCutter = new GrassCutter(this);
 
+    // Wire mobile combat gestures to grass cutting (and future combat)
+    this.player.onCombatGesture = (gesture) => {
+      // Any attack gesture triggers a slash
+      if (gesture.type !== 'block') {
+        this.grassCutter.slash();
+      }
+    };
+
     await this.worldGrid.init();
   }
 

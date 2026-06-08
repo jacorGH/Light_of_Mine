@@ -131,6 +131,21 @@ export class CellLoader {
 
   // ─── TERRAIN ─────────────────────────────────────────────────────
 
+  /**
+   * Global terrain height function. Uses FIXED noise parameters regardless
+   * of per-cell biome settings, so all cells produce identical heights at
+   * shared edges. Per-cell settings only affect color/texture.
+   */
+  getTerrainHeight(worldX, worldZ) {
+    const s = 0.06;
+    const a = 4.0;
+    return (
+      Math.sin(worldX * s) * Math.cos(worldZ * s) * a * 0.6 +
+      Math.sin(worldX * s * 2.3 + 1.7) * Math.cos(worldZ * s * 1.9 + 0.8) * a * 0.3 +
+      Math.sin(worldX * s * 4.1 + 3.2) * Math.cos(worldZ * s * 3.7 + 2.1) * a * 0.1
+    );
+  }
+
   buildTerrain(cellData, group) {
     const terrain = cellData.terrain || {};
     const segments = 48;
@@ -138,39 +153,31 @@ export class CellLoader {
     geometry.rotateX(-Math.PI / 2);
 
     const baseColor = terrain.baseColor || '#5a8a3c';
-    const noiseScale = terrain.noiseScale || 0.08;
-    const noiseAmplitude = terrain.noiseAmplitude || 3.0;
 
-    // Procedural terrain displacement using simplex-like noise (sine approximation)
     const positions = geometry.attributes.position;
     const colors = [];
-    const color = new THREE.Color(baseColor);
 
     for (let i = 0; i < positions.count; i++) {
-      const lx = positions.getX(i); // local x (-cellSize/2 to +cellSize/2)
-      const lz = positions.getZ(i); // local z
+      const lx = positions.getX(i);
+      const lz = positions.getZ(i);
 
-      // World-space coords for continuous noise across cells
+      // World-space coords for continuous noise across ALL cells
       const wx = lx + group.position.x;
       const wz = lz + group.position.z;
 
-      // Multi-octave noise approximation
-      const height =
-        Math.sin(wx * noiseScale) * Math.cos(wz * noiseScale) * noiseAmplitude * 0.6 +
-        Math.sin(wx * noiseScale * 2.3 + 1.7) * Math.cos(wz * noiseScale * 1.9 + 0.8) * noiseAmplitude * 0.3 +
-        Math.sin(wx * noiseScale * 4.1 + 3.2) * Math.cos(wz * noiseScale * 3.7 + 2.1) * noiseAmplitude * 0.1;
-
+      // Use global height function — guarantees matching edges between cells
+      const height = this.getTerrainHeight(wx, wz);
       positions.setY(i, height);
 
-      // Color variation based on height
-      const heightFactor = (height / noiseAmplitude + 1) * 0.5;
+      // Per-cell color (biome appearance) with height-based variation
+      const heightFactor = (height / 4.0 + 1) * 0.5;
       const c = new THREE.Color(baseColor);
       c.lerp(new THREE.Color('#ffffff'), heightFactor * 0.15);
       c.lerp(new THREE.Color('#222222'), (1 - heightFactor) * 0.1);
       colors.push(c.r, c.g, c.b);
     }
 
-    // Apply blend regions at cell edges for smooth transitions
+    // Apply blend regions at cell edges for smooth color transitions
     if (terrain.blendRegions) {
       this.applyBlendRegions(terrain.blendRegions, positions, colors, geometry);
     }
@@ -237,9 +244,6 @@ export class CellLoader {
    */
   spawnGrass(cellData, group) {
     const biome = cellData.biome || 'forest';
-    const terrain = cellData.terrain || {};
-    const noiseScale = terrain.noiseScale || 0.08;
-    const noiseAmplitude = terrain.noiseAmplitude || 3.0;
 
     // Grass density per biome
     const densityMap = {
@@ -253,24 +257,22 @@ export class CellLoader {
     };
     const grassCount = densityMap[biome] || 150;
 
-    // Skip grass for very rocky biomes
     if (grassCount === 0) return;
 
     // Create a grass blade geometry (thin triangular shape)
     const bladeGeo = new THREE.BufferGeometry();
     const bladeVerts = new Float32Array([
-      -0.05, 0, 0,     // bottom left
-       0.05, 0, 0,     // bottom right
-       0.03, 0.4, 0,   // mid right
-      -0.03, 0.4, 0,   // mid left
-       0.0, 0.7, 0,    // top
+      -0.05, 0, 0,
+       0.05, 0, 0,
+       0.03, 0.4, 0,
+      -0.03, 0.4, 0,
+       0.0, 0.7, 0,
     ]);
     const bladeIndices = [0, 1, 2, 0, 2, 3, 3, 2, 4];
     bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladeVerts, 3));
     bladeGeo.setIndex(bladeIndices);
     bladeGeo.computeVertexNormals();
 
-    // Grass material — bright green, double-sided
     const grassMat = new THREE.MeshStandardMaterial({
       color: '#4a9a2a',
       roughness: 0.8,
@@ -278,7 +280,6 @@ export class CellLoader {
       side: THREE.DoubleSide,
     });
 
-    // InstancedMesh for performance
     const grassMesh = new THREE.InstancedMesh(bladeGeo, grassMat, grassCount);
     grassMesh.name = 'grass';
     grassMesh.userData = { type: 'grass', blades: [] };
@@ -286,39 +287,29 @@ export class CellLoader {
     grassMesh.receiveShadow = false;
 
     const dummy = new THREE.Object3D();
-    const halfSize = this.cellSize / 2;
 
     for (let i = 0; i < grassCount; i++) {
-      // Random position within cell bounds (slightly inset to avoid exact edges)
       const lx = (Math.random() - 0.5) * (this.cellSize - 4);
       const lz = (Math.random() - 0.5) * (this.cellSize - 4);
 
-      // Calculate world position for height
       const wx = lx + group.position.x;
       const wz = lz + group.position.z;
 
-      // Same noise function as terrain to get ground height
-      const height =
-        Math.sin(wx * noiseScale) * Math.cos(wz * noiseScale) * noiseAmplitude * 0.6 +
-        Math.sin(wx * noiseScale * 2.3 + 1.7) * Math.cos(wz * noiseScale * 1.9 + 0.8) * noiseAmplitude * 0.3 +
-        Math.sin(wx * noiseScale * 4.1 + 3.2) * Math.cos(wz * noiseScale * 3.7 + 2.1) * noiseAmplitude * 0.1;
+      // Use the same global height function as terrain
+      const height = this.getTerrainHeight(wx, wz);
 
-      // Position blade on terrain
       dummy.position.set(lx, height, lz);
-
-      // Random rotation and slight scale variation
       dummy.rotation.set(
-        (Math.random() - 0.5) * 0.2, // slight tilt
-        Math.random() * Math.PI * 2,   // random facing
+        (Math.random() - 0.5) * 0.2,
+        Math.random() * Math.PI * 2,
         0
       );
-      const scale = 0.8 + Math.random() * 1.2; // 0.8 to 2.0 height variation
+      const scale = 0.8 + Math.random() * 1.2;
       dummy.scale.set(scale, scale, scale);
 
       dummy.updateMatrix();
       grassMesh.setMatrixAt(i, dummy.matrix);
 
-      // Track blade state for cutting
       grassMesh.userData.blades.push({
         index: i,
         worldX: wx,
