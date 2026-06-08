@@ -49,10 +49,11 @@ export class WeaponSystem {
     // Build weapon meshes
     this.weaponMeshes = {};
     this.buildWeaponMeshes();
-    this.showCurrentWeapon();
 
-    // HUD element for weapon name
+    // HUD element for weapon name (must be created before showCurrentWeapon)
     this.createHUD();
+
+    this.showCurrentWeapon();
 
     // Input
     this.setupInput();
