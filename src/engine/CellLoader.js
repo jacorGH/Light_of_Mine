@@ -45,6 +45,9 @@ export class CellLoader {
     // Build terrain
     this.buildTerrain(cellData, group);
 
+    // Spawn grass
+    this.spawnGrass(cellData, group);
+
     // Place objects
     if (cellData.objects) {
       cellData.objects.forEach((obj) => this.placeObject(obj, group));
@@ -224,6 +227,108 @@ export class CellLoader {
         }
       }
     }
+  }
+
+  // ─── GRASS ───────────────────────────────────────────────────────
+
+  /**
+   * Spawn cuttable grass blades across the cell terrain using InstancedMesh
+   * for performance. Grass density varies by biome.
+   */
+  spawnGrass(cellData, group) {
+    const biome = cellData.biome || 'forest';
+    const terrain = cellData.terrain || {};
+    const noiseScale = terrain.noiseScale || 0.08;
+    const noiseAmplitude = terrain.noiseAmplitude || 3.0;
+
+    // Grass density per biome
+    const densityMap = {
+      beach: 80,
+      coast: 60,
+      forest: 250,
+      village: 150,
+      swamp: 120,
+      mountain: 40,
+      ruins: 100,
+    };
+    const grassCount = densityMap[biome] || 150;
+
+    // Skip grass for very rocky biomes
+    if (grassCount === 0) return;
+
+    // Create a grass blade geometry (thin triangular shape)
+    const bladeGeo = new THREE.BufferGeometry();
+    const bladeVerts = new Float32Array([
+      -0.05, 0, 0,     // bottom left
+       0.05, 0, 0,     // bottom right
+       0.03, 0.4, 0,   // mid right
+      -0.03, 0.4, 0,   // mid left
+       0.0, 0.7, 0,    // top
+    ]);
+    const bladeIndices = [0, 1, 2, 0, 2, 3, 3, 2, 4];
+    bladeGeo.setAttribute('position', new THREE.BufferAttribute(bladeVerts, 3));
+    bladeGeo.setIndex(bladeIndices);
+    bladeGeo.computeVertexNormals();
+
+    // Grass material — bright green, double-sided
+    const grassMat = new THREE.MeshStandardMaterial({
+      color: '#4a9a2a',
+      roughness: 0.8,
+      flatShading: true,
+      side: THREE.DoubleSide,
+    });
+
+    // InstancedMesh for performance
+    const grassMesh = new THREE.InstancedMesh(bladeGeo, grassMat, grassCount);
+    grassMesh.name = 'grass';
+    grassMesh.userData = { type: 'grass', blades: [] };
+    grassMesh.castShadow = false;
+    grassMesh.receiveShadow = false;
+
+    const dummy = new THREE.Object3D();
+    const halfSize = this.cellSize / 2;
+
+    for (let i = 0; i < grassCount; i++) {
+      // Random position within cell bounds (slightly inset to avoid exact edges)
+      const lx = (Math.random() - 0.5) * (this.cellSize - 4);
+      const lz = (Math.random() - 0.5) * (this.cellSize - 4);
+
+      // Calculate world position for height
+      const wx = lx + group.position.x;
+      const wz = lz + group.position.z;
+
+      // Same noise function as terrain to get ground height
+      const height =
+        Math.sin(wx * noiseScale) * Math.cos(wz * noiseScale) * noiseAmplitude * 0.6 +
+        Math.sin(wx * noiseScale * 2.3 + 1.7) * Math.cos(wz * noiseScale * 1.9 + 0.8) * noiseAmplitude * 0.3 +
+        Math.sin(wx * noiseScale * 4.1 + 3.2) * Math.cos(wz * noiseScale * 3.7 + 2.1) * noiseAmplitude * 0.1;
+
+      // Position blade on terrain
+      dummy.position.set(lx, height, lz);
+
+      // Random rotation and slight scale variation
+      dummy.rotation.set(
+        (Math.random() - 0.5) * 0.2, // slight tilt
+        Math.random() * Math.PI * 2,   // random facing
+        0
+      );
+      const scale = 0.8 + Math.random() * 1.2; // 0.8 to 2.0 height variation
+      dummy.scale.set(scale, scale, scale);
+
+      dummy.updateMatrix();
+      grassMesh.setMatrixAt(i, dummy.matrix);
+
+      // Track blade state for cutting
+      grassMesh.userData.blades.push({
+        index: i,
+        worldX: wx,
+        worldZ: wz,
+        cut: false,
+      });
+    }
+
+    grassMesh.instanceMatrix.needsUpdate = true;
+    group.add(grassMesh);
   }
 
   // ─── OBJECTS ─────────────────────────────────────────────────────

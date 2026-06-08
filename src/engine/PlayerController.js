@@ -239,6 +239,47 @@ export class PlayerController {
     this.joystickKnob.style.transform = 'translate(-50%, -50%)';
   }
 
+  // ─── TERRAIN FOLLOWING ────────────────────────────────────────────
+
+  /**
+   * Set the scene reference so we can raycast against terrain.
+   */
+  setScene(scene) {
+    this.scene = scene;
+    this.raycaster = new THREE.Raycaster();
+    this.raycaster.far = 50;
+    this.groundHeight = 0;
+    this.playerHeight = 1.7; // Eye height above ground
+    this.heightSmoothing = 10; // How fast we interpolate to ground height
+  }
+
+  /**
+   * Raycast straight down from the player to find terrain height.
+   */
+  getGroundHeight() {
+    if (!this.scene || !this.raycaster) return this.groundHeight;
+
+    const origin = this.camera.position.clone();
+    origin.y += 20; // Cast from above
+
+    this.raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+
+    // Only hit terrain meshes (named 'terrain')
+    const terrains = [];
+    this.scene.traverse((obj) => {
+      if (obj.isMesh && obj.name === 'terrain') {
+        terrains.push(obj);
+      }
+    });
+
+    const hits = this.raycaster.intersectObjects(terrains, false);
+    if (hits.length > 0) {
+      return hits[0].point.y;
+    }
+
+    return this.groundHeight;
+  }
+
   // ─── UPDATE ─────────────────────────────────────────────────────
 
   update(delta) {
@@ -277,7 +318,9 @@ export class PlayerController {
     this.camera.position.addScaledVector(forward, -this.velocity.z);
     this.camera.position.addScaledVector(right, this.velocity.x);
 
-    // Keep camera at a fixed height (basic — terrain following coming soon)
-    this.camera.position.y = 2;
+    // Terrain following — smoothly adjust Y to ground height
+    const targetGroundY = this.getGroundHeight();
+    this.groundHeight += (targetGroundY - this.groundHeight) * Math.min(1, this.heightSmoothing * delta);
+    this.camera.position.y = this.groundHeight + this.playerHeight;
   }
 }

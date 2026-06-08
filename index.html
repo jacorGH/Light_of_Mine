@@ -15,11 +15,32 @@
       z-index: 100;
     }
     #loading.hidden { display: none; }
+    #controls-hint {
+      position: fixed; top: 10px; left: 10px;
+      color: rgba(255,255,255,0.6); font-family: monospace; font-size: 12px;
+      line-height: 1.6; z-index: 50; pointer-events: none;
+      transition: opacity 1s;
+    }
+    #controls-hint.fade { opacity: 0; }
   </style>
 </head>
 <body>
   <div id="loading">Loading world...</div>
+  <div id="controls-hint">
+    WASD — Move<br>
+    Mouse — Look<br>
+    Click/Space — Cut Grass<br>
+    <em>(Click to start)</em>
+  </div>
   <canvas id="game-canvas"></canvas>
   <script type="module" src="/src/main.js"></script>
+  <script>
+    // Fade controls hint after 8 seconds
+    setTimeout(() => {
+      const hint = document.getElementById('controls-hint');
+      if (hint) hint.classList.add('fade');
+      setTimeout(() => { if (hint) hint.remove(); }, 1000);
+    }, 8000);
+  </script>
 </body>
 </html>

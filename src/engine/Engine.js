@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PlayerController } from './PlayerController.js';
 import { WorldGrid } from './WorldGrid.js';
+import { GrassCutter } from './GrassCutter.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and world streaming.
@@ -56,6 +57,12 @@ export class Engine {
    * Initialize the world — loads the grid manifest and initial cells.
    */
   async init() {
+    // Give player controller access to scene for terrain raycasting
+    this.player.setScene(this.scene);
+
+    // Grass cutting system
+    this.grassCutter = new GrassCutter(this);
+
     await this.worldGrid.init();
   }
 
@@ -68,6 +75,7 @@ export class Engine {
     const delta = this.clock.getDelta();
     this.player.update(delta);
     this.worldGrid.update();
+    this.grassCutter.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 }
