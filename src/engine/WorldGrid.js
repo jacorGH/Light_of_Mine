@@ -117,9 +117,10 @@ export class WorldGrid {
 
   /**
    * Called every frame — check if player has moved to a new cell.
+   * Returns true if cells were loaded/unloaded.
    */
   update() {
-    if (this.isInterior) return;
+    if (this.isInterior) return false;
 
     const pos = this.engine.camera.position;
     const newCell = this.worldToCell(pos.x, pos.z);
@@ -134,7 +135,11 @@ export class WorldGrid {
         this.sun.target.position.set(pos.x, 0, pos.z);
         this.sun.target.updateMatrixWorld();
       }
+
+      return true;
     }
+
+    return false;
   }
 
   /**

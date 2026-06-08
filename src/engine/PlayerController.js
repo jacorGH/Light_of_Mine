@@ -531,24 +531,37 @@ export class PlayerController {
     this.groundHeight = 0;
     this.playerHeight = 1.7;
     this.heightSmoothing = 10;
+
+    // Cached terrain meshes (refreshed periodically)
+    this.terrainMeshes = [];
+    this.terrainCacheTimer = 0;
+  }
+
+  refreshTerrainCache() {
+    this.terrainMeshes = [];
+    this.scene.traverse((obj) => {
+      if (obj.isMesh && obj.name === 'terrain') {
+        this.terrainMeshes.push(obj);
+      }
+    });
   }
 
   getGroundHeight() {
     if (!this.scene || !this.raycaster) return this.groundHeight;
+
+    // Refresh terrain cache every ~1 second (cells load/unload)
+    this.terrainCacheTimer -= 1;
+    if (this.terrainCacheTimer <= 0 || this.terrainMeshes.length === 0) {
+      this.refreshTerrainCache();
+      this.terrainCacheTimer = 60; // ~60 frames
+    }
 
     const origin = this.camera.position.clone();
     origin.y += 20;
 
     this.raycaster.set(origin, new THREE.Vector3(0, -1, 0));
 
-    const terrains = [];
-    this.scene.traverse((obj) => {
-      if (obj.isMesh && obj.name === 'terrain') {
-        terrains.push(obj);
-      }
-    });
-
-    const hits = this.raycaster.intersectObjects(terrains, false);
+    const hits = this.raycaster.intersectObjects(this.terrainMeshes, false);
     if (hits.length > 0) {
       return hits[0].point.y;
     }

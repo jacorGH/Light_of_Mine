@@ -65,13 +65,15 @@ export class Engine {
 
     // Wire mobile combat gestures to grass cutting (and future combat)
     this.player.onCombatGesture = (gesture) => {
-      // Any attack gesture triggers a slash
       if (gesture.type !== 'block') {
         this.grassCutter.slash();
       }
     };
 
     await this.worldGrid.init();
+
+    // Invalidate grass cache after initial load
+    this.grassCutter.invalidateGrassCache();
   }
 
   start() {
@@ -82,7 +84,13 @@ export class Engine {
   update() {
     const delta = this.clock.getDelta();
     this.player.update(delta);
-    this.worldGrid.update();
+
+    // Check if cells changed (WorldGrid returns true if cells loaded/unloaded)
+    const cellsChanged = this.worldGrid.update();
+    if (cellsChanged) {
+      this.grassCutter.invalidateGrassCache();
+    }
+
     this.grassCutter.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
