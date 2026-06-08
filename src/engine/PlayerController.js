@@ -34,8 +34,10 @@ export class PlayerController {
     // Detect mobile
     this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-    // Combat gesture callback (set by GrassCutter or combat system)
+    // Combat gesture callback (set by Engine)
     this.onCombatGesture = null;
+    // Weapon cycle callback (set by Engine)
+    this.onWeaponCycle = null;
 
     // ─── PC CONTROLS ───────────────────────────────────────────────
     if (!this.isMobile) {
@@ -297,8 +299,14 @@ export class PlayerController {
         // Up-left
         gesture = { type: 'slash_left', label: '← Slash', power };
       } else if (deg >= 240 && deg < 300) {
-        // Down
-        gesture = { type: 'power_attack', label: 'Power ↓', power };
+        // Down — short/slow = cycle weapon, fast = power attack
+        if (speed > 0.8) {
+          gesture = { type: 'power_attack', label: 'Power ↓', power };
+        } else {
+          // Cycle weapon
+          if (this.onWeaponCycle) this.onWeaponCycle(1);
+          return; // Don't fire combat gesture
+        }
       } else if (deg >= 330 || deg < 30) {
         // Right
         gesture = { type: 'sweep_right', label: 'Sweep →', power };

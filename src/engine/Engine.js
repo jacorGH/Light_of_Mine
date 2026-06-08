@@ -67,7 +67,7 @@ export class Engine {
     // Weapon system
     this.weaponSystem = new WeaponSystem(this);
 
-    // Wire combat input — both PC click and mobile gesture
+    // Wire combat input — mobile gesture only (PC goes through GrassCutter click)
     this.player.onCombatGesture = (gesture) => {
       if (gesture.type === 'block') return;
 
@@ -79,11 +79,12 @@ export class Engine {
       if (weapon.type === 'melee') {
         this.grassCutter.slash();
       }
+    };
 
-      // Weapon cycling: power_attack gesture cycles weapon
-      if (gesture.type === 'power_attack') {
-        this.weaponSystem.nextWeapon();
-      }
+    // Wire weapon cycling from player controller
+    this.player.onWeaponCycle = (direction) => {
+      if (direction > 0) this.weaponSystem.nextWeapon();
+      else this.weaponSystem.prevWeapon();
     };
 
     await this.worldGrid.init();

@@ -41,7 +41,10 @@ export class WeaponSystem {
     this.viewmodelGroup = new THREE.Group();
     this.viewmodelGroup.name = '__viewmodel';
     this.camera.add(this.viewmodelGroup);
-    this.scene.add(this.camera); // Camera must be in scene for children to render
+    // Ensure camera is in the scene graph so viewmodel renders
+    if (!this.camera.parent) {
+      this.scene.add(this.camera);
+    }
 
     // Build weapon meshes
     this.weaponMeshes = {};

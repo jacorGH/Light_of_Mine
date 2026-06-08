@@ -42,13 +42,16 @@ export class GrassCutter {
   }
 
   setupPCInput() {
-    // PC: left click to slash (only when pointer locked)
+    // PC: left click triggers attack (only when pointer locked)
     document.addEventListener('mousedown', (e) => {
       if (e.button === 0 && document.pointerLockElement) {
-        this.slash();
-        // Also trigger weapon attack via engine
+        // Trigger weapon attack
         if (this.engine.weaponSystem) {
           this.engine.weaponSystem.attack({ type: 'slash_right', power: 1 });
+        }
+        // Melee weapons also cut grass
+        if (this.engine.weaponSystem && this.engine.weaponSystem.currentWeapon.type === 'melee') {
+          this.slash();
         }
       }
     });
