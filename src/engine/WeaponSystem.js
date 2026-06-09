@@ -201,11 +201,21 @@ export class WeaponSystem {
   }
 
   showCurrentWeapon() {
-    Object.values(this.weaponMeshes).forEach((m) => { m.visible = false; });
-    const mesh = this.weaponMeshes[this.currentWeapon.id];
+    const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
+    // Two-handed weapons (bow) center more
+    const weapon = this.currentWeapon;
+    const isTwoHanded = weapon.id === 'bow';
+    const xOffset = isTwoHanded ? handOffset * 0.4 : handOffset;
+
+    Object.values(this.weaponMeshes).forEach((m) => {
+      m.visible = false;
+      m.position.x = xOffset;
+    });
+    const mesh = this.weaponMeshes[weapon.id];
     if (mesh) {
       mesh.visible = true;
       mesh.rotation.set(0, 0, 0);
+      mesh.position.set(xOffset, -0.3, -0.6);
     }
     this.updateHUD();
   }

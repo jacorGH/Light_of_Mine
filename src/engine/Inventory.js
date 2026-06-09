@@ -77,9 +77,9 @@ export class Inventory {
   // ─── INPUT ──────────────────────────────────────────────────────
 
   setupInput() {
-    // PC: Tab or I to toggle inventory
+    // PC: I key to toggle inventory (Tab reserved for radial menu)
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Tab' || e.code === 'KeyI') {
+      if (e.code === 'KeyI') {
         e.preventDefault();
         this.toggle();
       }

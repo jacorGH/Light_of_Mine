@@ -1,15 +1,32 @@
 import * as THREE from 'three';
+import { events } from './EventBus.js';
 import { PlayerController } from './PlayerController.js';
 import { WorldGrid } from './WorldGrid.js';
 import { GrassCutter } from './GrassCutter.js';
 import { WeaponSystem } from './WeaponSystem.js';
 import { Inventory } from './Inventory.js';
+import { RadialMenu } from '../ui/RadialMenu.js';
 
 /**
- * Core engine — manages renderer, camera, scene, game loop, and world streaming.
+ * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
+ * 
+ * Systems communicate ONLY through the EventBus. Engine wires up the initial
+ * subscriptions but systems can also subscribe to events directly.
+ * 
+ * Key events:
+ *   player:attack { type, direction, power }
+ *   player:weapon_cycle { direction: 1|-1 }
+ *   player:jump
+ *   combat:slash  (melee hit in front of player)
+ *   item:collected { id, name, type, quantity }
+ *   world:cells_changed
+ *   game:paused
+ *   game:resumed
  */
 export class Engine {
   constructor(canvas) {
+    this.paused = false;
+
     // Renderer
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -31,20 +48,96 @@ export class Engine {
     );
     this.camera.position.set(32, 2, 32);
 
-    // Player controller (first-person)
-    this.player = new PlayerController(this.camera, this.renderer.domElement);
-
-    // World grid (streaming open world)
-    this.worldGrid = new WorldGrid(this, {
-      cellSize: 64,
-      viewRadius: 2,
-    });
-
-    // Clock for delta time
+    // Clock
     this.clock = new THREE.Clock();
+
+    // ─── SYSTEMS ──────────────────────────────────────────────────
+    this.player = new PlayerController(this.camera, this.renderer.domElement);
+    this.worldGrid = new WorldGrid(this, { cellSize: 64, viewRadius: 2 });
+    this.grassCutter = new GrassCutter(this);
+    this.weaponSystem = new WeaponSystem(this);
+    this.inventory = new Inventory(this);
+    this.radialMenu = new RadialMenu(this);
+
+    // ─── EVENT WIRING ─────────────────────────────────────────────
+    this.setupEvents();
 
     // Handle resize
     window.addEventListener('resize', () => this.onResize());
+  }
+
+  /**
+   * Wire up event subscriptions between systems.
+   * This is the ONLY place systems connect to each other.
+   */
+  setupEvents() {
+    // Player attack → weapon animation + grass cutting
+    events.on('player:attack', (data) => {
+      if (this.paused) return;
+      this.weaponSystem.attack(data);
+
+      if (this.weaponSystem.currentWeapon.type === 'melee') {
+        events.emit('combat:slash', data);
+      }
+    });
+
+    // Combat slash → grass cutter responds
+    events.on('combat:slash', () => {
+      if (this.paused) return;
+      this.grassCutter.slash();
+    });
+
+    // Weapon cycling
+    events.on('player:weapon_cycle', (data) => {
+      if (this.paused) return;
+      if (data.direction > 0) this.weaponSystem.nextWeapon();
+      else this.weaponSystem.prevWeapon();
+    });
+
+    // Item collected → inventory
+    events.on('item:collected', (data) => {
+      this.inventory.addItem(data);
+    });
+
+    // World cells changed → invalidate caches
+    events.on('world:cells_changed', () => {
+      this.grassCutter.invalidateGrassCache();
+    });
+
+    // Game pause/resume
+    events.on('game:paused', () => { this.paused = true; });
+    events.on('game:resumed', () => { this.paused = false; });
+
+    // Radial menu: equip weapon from menu selection
+    events.on('player:equip_weapon', (data) => {
+      const idx = this.weaponSystem.weapons.findIndex(w => w.id === data.id);
+      if (idx !== -1) {
+        this.weaponSystem.currentWeaponIndex = idx;
+        this.weaponSystem.showCurrentWeapon();
+      }
+    });
+
+    // Radial menu: settings (handedness)
+    events.on('menu:item_selected', (data) => {
+      if (data.id === 'hand_right') {
+        this.weaponSystem.dominantHand = 'right';
+        this.weaponSystem.showCurrentWeapon();
+      } else if (data.id === 'hand_left') {
+        this.weaponSystem.dominantHand = 'left';
+        this.weaponSystem.showCurrentWeapon();
+      }
+    });
+
+    // ─── PLAYER CONTROLLER CALLBACKS → EVENTS ─────────────────────
+    // Bridge the PlayerController callbacks into the event bus
+    this.player.onCombatGesture = (gesture) => {
+      if (gesture.type === 'block') return;
+      events.emit('player:attack', gesture);
+    };
+
+    this.player.onWeaponCycle = (direction) => {
+      events.emit('player:weapon_cycle', { direction });
+    };
   }
 
   onResize() {
@@ -56,44 +149,11 @@ export class Engine {
   }
 
   /**
-   * Initialize the world — loads the grid manifest and initial cells.
+   * Initialize — load world, set up systems.
    */
   async init() {
-    // Give player controller access to scene for terrain raycasting
     this.player.setScene(this.scene);
-
-    // Grass cutting system
-    this.grassCutter = new GrassCutter(this);
-
-    // Weapon system
-    this.weaponSystem = new WeaponSystem(this);
-
-    // Inventory
-    this.inventory = new Inventory(this);
-
-    // Wire combat input — mobile gesture only (PC goes through GrassCutter click)
-    this.player.onCombatGesture = (gesture) => {
-      if (gesture.type === 'block') return;
-
-      // Trigger weapon attack animation + projectile
-      this.weaponSystem.attack(gesture);
-
-      // Melee weapons also cut grass
-      const weapon = this.weaponSystem.currentWeapon;
-      if (weapon.type === 'melee') {
-        this.grassCutter.slash();
-      }
-    };
-
-    // Wire weapon cycling from player controller
-    this.player.onWeaponCycle = (direction) => {
-      if (direction > 0) this.weaponSystem.nextWeapon();
-      else this.weaponSystem.prevWeapon();
-    };
-
     await this.worldGrid.init();
-
-    // Invalidate grass cache after initial load
     this.grassCutter.invalidateGrassCache();
   }
 
@@ -104,12 +164,18 @@ export class Engine {
 
   update() {
     const delta = this.clock.getDelta();
+
+    // When paused, still render (menu visible) but don't update game systems
+    if (this.paused) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
+
     this.player.update(delta);
 
-    // Check if cells changed (WorldGrid returns true if cells loaded/unloaded)
     const cellsChanged = this.worldGrid.update();
     if (cellsChanged) {
-      this.grassCutter.invalidateGrassCache();
+      events.emit('world:cells_changed');
     }
 
     this.grassCutter.update(delta);

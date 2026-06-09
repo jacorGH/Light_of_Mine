@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { events } from './EventBus.js';
 
 /**
  * GrassCutter — handles cutting grass clumps (Zelda-style).
@@ -39,14 +40,7 @@ export class GrassCutter {
   setupPCInput() {
     document.addEventListener('mousedown', (e) => {
       if (e.button === 0 && document.pointerLockElement) {
-        // Trigger weapon attack
-        if (this.engine.weaponSystem) {
-          this.engine.weaponSystem.attack({ type: 'slash_right', direction: 'right', power: 1 });
-        }
-        // Cut grass if melee
-        if (this.engine.weaponSystem && this.engine.weaponSystem.currentWeapon.type === 'melee') {
-          this.slash();
-        }
+        events.emit('player:attack', { type: 'slash_right', direction: 'right', power: 1 });
       }
     });
   }
@@ -238,18 +232,13 @@ export class GrassCutter {
    * Random chance to drop an item when grass is cut.
    */
   rollDrop() {
-    if (!this.engine.inventory) return;
     const roll = Math.random();
     if (roll < 0.25) {
-      // 25% chance: gold (1-5)
-      this.engine.inventory.addItem({ id: 'gold', name: 'Gold', type: 'currency', icon: '●', quantity: Math.ceil(Math.random() * 5) });
+      events.emit('item:collected', { id: 'gold', name: 'Gold', type: 'currency', icon: '●', quantity: Math.ceil(Math.random() * 5) });
     } else if (roll < 0.35) {
-      // 10% chance: herb
-      this.engine.inventory.addItem({ id: 'herb_healing', name: 'Healing Herb', type: 'consumable', icon: '♣', quantity: 1 });
+      events.emit('item:collected', { id: 'herb_healing', name: 'Healing Herb', type: 'consumable', icon: '♣', quantity: 1 });
     } else if (roll < 0.38) {
-      // 3% chance: health potion
-      this.engine.inventory.addItem({ id: 'potion_health_minor', name: 'Health Potion', type: 'consumable', icon: '❤', quantity: 1 });
+      events.emit('item:collected', { id: 'potion_health_minor', name: 'Health Potion', type: 'consumable', icon: '❤', quantity: 1 });
     }
-    // 62% chance: nothing
   }
 }
