@@ -6,6 +6,7 @@ import { GrassCutter } from './GrassCutter.js';
 import { WeaponSystem } from './WeaponSystem.js';
 import { Inventory } from './Inventory.js';
 import { RadialMenu } from '../ui/RadialMenu.js';
+import { PlayerStats } from '../systems/PlayerStats.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -57,6 +58,7 @@ export class Engine {
     this.grassCutter = new GrassCutter(this);
     this.weaponSystem = new WeaponSystem(this);
     this.inventory = new Inventory(this);
+    this.playerStats = new PlayerStats(this);
     this.radialMenu = new RadialMenu(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
@@ -71,12 +73,23 @@ export class Engine {
    * This is the ONLY place systems connect to each other.
    */
   setupEvents() {
-    // Player attack → weapon animation + grass cutting
+    // Player attack → weapon animation + grass cutting + stats drain
     events.on('player:attack', (data) => {
       if (this.paused) return;
+
+      // Enrich attack data with current weapon info for stats system
+      const weapon = this.weaponSystem.currentWeapon;
+      data.weaponType = weapon.type;
+      data.spell = (weapon.type === 'projectile') ? weapon.id : null;
+
+      // Check if player has enough stamina/magicka
+      if (!this.playerStats.canAttack(data)) {
+        return; // Can't attack — not enough resources
+      }
+
       this.weaponSystem.attack(data);
 
-      if (this.weaponSystem.currentWeapon.type === 'melee') {
+      if (weapon.type === 'melee') {
         events.emit('combat:slash', data);
       }
     });
@@ -180,6 +193,7 @@ export class Engine {
 
     this.grassCutter.update(delta);
     this.weaponSystem.update(delta);
+    this.playerStats.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 }
