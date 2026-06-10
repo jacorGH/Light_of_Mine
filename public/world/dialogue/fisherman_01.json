@@ -1,0 +1,44 @@
+{
+  "id": "fisherman_01",
+  "npcName": "Old Harren",
+  "nodes": {
+    "start": {
+      "text": "Ah, another soul washed ashore. You're lucky the tide didn't take ye to the grotto. That place swallows ships whole.",
+      "choices": [
+        { "text": "What grotto?", "next": "grotto_info" },
+        { "text": "Tell me about the shipwreck.", "next": "shipwreck" },
+        { "text": "Just passing through. Goodbye.", "next": null }
+      ]
+    },
+    "grotto_info": {
+      "text": "The tidal grotto, east along the rocks. Water fills it at high tide, but at low tide... I've seen light glinting inside. Gold, maybe. Or something worse. Many a fool has gone in. Few come back.",
+      "choices": [
+        { "text": "I'll check it out at low tide.", "next": null, "action": { "type": "quest_start", "questId": "tidal_grotto_treasure" } },
+        { "text": "What about the shipwreck?", "next": "shipwreck" },
+        { "text": "I'll stay away. Thanks.", "next": null }
+      ]
+    },
+    "shipwreck": {
+      "text": "The Mara's Folly. Merchant vessel out of Karstead. Hit the reef in a storm three months back. I salvaged what I could, but the hull's still out there. Strange sounds come from it at night.",
+      "choices": [
+        { "text": "Strange sounds?", "next": "shipwreck_sounds" },
+        { "text": "Did you find anything valuable?", "next": "shipwreck_loot" },
+        { "text": "Interesting. Goodbye.", "next": null }
+      ]
+    },
+    "shipwreck_sounds": {
+      "text": "Creaking and groaning, sure — every wreck does that. But this one... whispers. Like voices under the water. The fish won't go near it no more.",
+      "choices": [
+        { "text": "I'll investigate the wreck.", "next": null, "action": { "type": "set_flag", "flag": "knows_about_wreck" } },
+        { "text": "Probably just the wind.", "next": null }
+      ]
+    },
+    "shipwreck_loot": {
+      "text": "Rope, sailcloth, a few crates of salt. But the captain's cabin was locked tight. Never could pry it open. If ye've got strong arms, ye might have better luck.",
+      "choices": [
+        { "text": "I'll take a look.", "next": null, "action": { "type": "set_flag", "flag": "knows_about_wreck" } },
+        { "text": "Thanks for the tip.", "next": null }
+      ]
+    }
+  }
+}

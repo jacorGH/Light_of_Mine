@@ -1,0 +1,44 @@
+{
+  "id": "tavern_keeper",
+  "npcName": "Burl Deepcup",
+  "nodes": {
+    "start": {
+      "text": "Welcome to The Salty Dog! What can I get ye?",
+      "choices": [
+        { "text": "Tell me about this island.", "next": "island_info" },
+        { "text": "I need supplies.", "next": "shop" },
+        { "text": "Goodbye.", "next": null }
+      ]
+    },
+    "island_info": {
+      "text": "Ashvael's been cursed since the tower fell. Strange creatures roam the forests now. If ye're brave, the old watchtower to the east might hold answers.",
+      "choices": [
+        { "text": "I'll investigate the tower.", "next": null, "action": { "type": "quest_start", "questId": "watchtower_mystery" } },
+        { "text": "What kind of creatures?", "next": "creatures" },
+        { "text": "Thanks for the warning.", "next": null }
+      ]
+    },
+    "creatures": {
+      "text": "Ghouls mostly. Shambling things what used to be miners, I reckon. They come out at dusk near the old ruins. The deep woods are worse — something big lurks in there.",
+      "choices": [
+        { "text": "I'll deal with them.", "next": null, "action": { "type": "quest_start", "questId": "watchtower_mystery" } },
+        { "text": "I'll keep my distance.", "next": null }
+      ]
+    },
+    "shop": {
+      "text": "I've got potions and a warm meal. What'll it be?",
+      "choices": [
+        { "text": "A health potion. (10 gold)", "next": "shop_thanks", "action": { "type": "buy", "itemId": "potion_health_minor", "cost": 10 } },
+        { "text": "A stamina tonic. (8 gold)", "next": "shop_thanks", "action": { "type": "buy", "itemId": "tonic_stamina", "cost": 8 } },
+        { "text": "Never mind.", "next": null }
+      ]
+    },
+    "shop_thanks": {
+      "text": "Good choice. Stay safe out there, traveler.",
+      "choices": [
+        { "text": "Thanks.", "next": null },
+        { "text": "I need something else.", "next": "shop" }
+      ]
+    }
+  }
+}

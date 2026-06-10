@@ -1,0 +1,53 @@
+{
+  "id": "guard_village",
+  "npcName": "Sergeant Dren",
+  "nodes": {
+    "start": {
+      "text": "Halt. State your business. ...Ah, you're that newcomer. Fine. But stay out of trouble — we've got enough problems without outsiders causing more.",
+      "choices": [
+        { "text": "What kind of problems?", "next": "problems" },
+        { "text": "I can handle myself. Need any help?", "next": "bounty" },
+        { "text": "Understood. I'll be on my way.", "next": null }
+      ]
+    },
+    "problems": {
+      "text": "Monsters from the swamp have been creeping closer every night. Lost two watchmen last week. And the deep woods? Don't go in there alone. Something took root after the tower fell.",
+      "choices": [
+        { "text": "What's in the deep woods?", "next": "deep_woods" },
+        { "text": "Tell me about the swamp creatures.", "next": "swamp_info" },
+        { "text": "I can help. Got any bounties?", "next": "bounty" },
+        { "text": "I'll be careful.", "next": null }
+      ]
+    },
+    "deep_woods": {
+      "text": "Nobody knows for sure. The scouts who went in described twisted trees, thick fog, and eyes watching from the canopy. One came back raving about a stone circle. The others didn't come back at all.",
+      "choices": [
+        { "text": "A stone circle? I'll investigate.", "next": null, "action": { "type": "set_flag", "flag": "knows_deep_woods_danger" } },
+        { "text": "I'll stay clear for now.", "next": null }
+      ]
+    },
+    "swamp_info": {
+      "text": "Bog crawlers mostly. Nasty things with too many legs. They come out of the mire at dusk. If you clear a few out, I might have a reward for you.",
+      "choices": [
+        { "text": "Consider it done.", "next": null, "action": { "type": "quest_start", "questId": "swamp_bounty" } },
+        { "text": "How much is the reward?", "next": "bounty_reward" },
+        { "text": "Not my problem.", "next": null }
+      ]
+    },
+    "bounty": {
+      "text": "Aye, I've been posting bounties no one takes. Bog crawlers in the swamp — five of the wretched things have been harassing our supply route. Clear them out, and I'll make it worth your while.",
+      "choices": [
+        { "text": "I'll take care of it.", "next": null, "action": { "type": "quest_start", "questId": "swamp_bounty" } },
+        { "text": "What's the pay?", "next": "bounty_reward" },
+        { "text": "Maybe later.", "next": null }
+      ]
+    },
+    "bounty_reward": {
+      "text": "Fifty gold and a chain shirt from our armory. Good steel, not the rusty stuff. You interested?",
+      "choices": [
+        { "text": "You've got a deal.", "next": null, "action": { "type": "quest_start", "questId": "swamp_bounty" } },
+        { "text": "I'll think about it.", "next": null }
+      ]
+    }
+  }
+}
