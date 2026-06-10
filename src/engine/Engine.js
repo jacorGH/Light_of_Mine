@@ -11,6 +11,7 @@ import { EnemySystem } from '../systems/EnemySystem.js';
 import { InteractionSystem } from '../systems/InteractionSystem.js';
 import { DialogueSystem } from '../systems/DialogueSystem.js';
 import { QuestSystem } from '../systems/QuestSystem.js';
+import { SaveSystem } from '../systems/SaveSystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -67,6 +68,7 @@ export class Engine {
     this.interactionSystem = new InteractionSystem(this);
     this.dialogueSystem = new DialogueSystem(this);
     this.questSystem = new QuestSystem(this);
+    this.saveSystem = new SaveSystem(this);
     this.radialMenu = new RadialMenu(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
