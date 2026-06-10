@@ -12,6 +12,7 @@ import { InteractionSystem } from '../systems/InteractionSystem.js';
 import { DialogueSystem } from '../systems/DialogueSystem.js';
 import { QuestSystem } from '../systems/QuestSystem.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
+import { SkySystem } from '../systems/SkySystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -69,6 +70,7 @@ export class Engine {
     this.dialogueSystem = new DialogueSystem(this);
     this.questSystem = new QuestSystem(this);
     this.saveSystem = new SaveSystem(this);
+    this.skySystem = new SkySystem(this);
     this.radialMenu = new RadialMenu(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
@@ -211,6 +213,7 @@ export class Engine {
     this.playerStats.update(delta);
     this.enemySystem.update(delta);
     this.interactionSystem.update();
+    this.skySystem.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 }
