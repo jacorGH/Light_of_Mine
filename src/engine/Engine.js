@@ -7,6 +7,7 @@ import { WeaponSystem } from './WeaponSystem.js';
 import { Inventory } from './Inventory.js';
 import { RadialMenu } from '../ui/RadialMenu.js';
 import { PlayerStats } from '../systems/PlayerStats.js';
+import { EnemySystem } from '../systems/EnemySystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -59,6 +60,7 @@ export class Engine {
     this.weaponSystem = new WeaponSystem(this);
     this.inventory = new Inventory(this);
     this.playerStats = new PlayerStats(this);
+    this.enemySystem = new EnemySystem(this);
     this.radialMenu = new RadialMenu(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
@@ -120,6 +122,11 @@ export class Engine {
     // Game pause/resume
     events.on('game:paused', () => { this.paused = true; });
     events.on('game:resumed', () => { this.paused = false; });
+
+    // XP from enemy kills → player stats
+    events.on('player:xp', (data) => {
+      this.playerStats.addXP(data.amount);
+    });
 
     // Radial menu: equip weapon from menu selection
     events.on('player:equip_weapon', (data) => {
@@ -194,6 +201,7 @@ export class Engine {
     this.grassCutter.update(delta);
     this.weaponSystem.update(delta);
     this.playerStats.update(delta);
+    this.enemySystem.update(delta);
     this.renderer.render(this.scene, this.camera);
   }
 }
