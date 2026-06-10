@@ -1,0 +1,38 @@
+{
+  "id": "watchtower_mystery",
+  "title": "Watchtower Mystery",
+  "description": "The tavern keeper has heard strange noises from the old watchtower. Investigate the ruins and clear out whatever lurks within.",
+  "giver": "tavern_keeper",
+  "objectives": [
+    {
+      "id": "explore_watchtower",
+      "type": "explore",
+      "target": "watchtower_interior",
+      "count": 1,
+      "current": 0,
+      "label": "Explore the watchtower"
+    },
+    {
+      "id": "kill_skeletons",
+      "type": "kill",
+      "target": "enemy_skeleton",
+      "count": 3,
+      "current": 0,
+      "label": "Defeat the skeletons"
+    }
+  ],
+  "rewards": {
+    "gold": 75,
+    "items": [
+      {
+        "id": "sword_ancient",
+        "name": "Ancient Sword",
+        "type": "weapon",
+        "icon": "⚔️"
+      }
+    ],
+    "xp": 150
+  },
+  "turnIn": "tavern_keeper",
+  "completionDialogue": "By the gods, skeletons! You've done us all a great service. Take this — found it in my grandfather's chest."
+}

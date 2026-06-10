@@ -1,0 +1,30 @@
+{
+  "id": "swamp_bounty",
+  "title": "Swamp Bounty",
+  "description": "Clear 5 bog creatures from the swamp for Sergeant Dren.",
+  "giver": "guard_village",
+  "objectives": [
+    {
+      "id": "kill_bog",
+      "type": "kill",
+      "target": "enemy_bog_creature",
+      "count": 5,
+      "current": 0,
+      "label": "Kill bog creatures"
+    }
+  ],
+  "rewards": {
+    "gold": 50,
+    "items": [
+      {
+        "id": "armor_chain",
+        "name": "Chain Shirt",
+        "type": "armor",
+        "icon": "🛡"
+      }
+    ],
+    "xp": 100
+  },
+  "turnIn": "guard_village",
+  "completionDialogue": "Well done, traveler. Here's your reward as promised."
+}
