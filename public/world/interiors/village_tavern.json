@@ -1,0 +1,71 @@
+{
+  "id": "village_tavern",
+  "name": "The Salty Dog",
+  "environment": {
+    "ambientLight": { "color": "#ffddaa", "intensity": 0.3 },
+    "pointLights": [
+      { "position": [0, 3, 0], "color": "#ff9944", "intensity": 0.8, "range": 10 },
+      { "position": [4, 2.5, -3], "color": "#ff8833", "intensity": 0.5, "range": 6 },
+      { "position": [-4, 2.5, 2], "color": "#ff7722", "intensity": 0.4, "range": 5 }
+    ]
+  },
+  "geometry": {
+    "size": [14, 4, 12],
+    "floorColor": "#4a3a2a",
+    "wallColor": "#5a4a3a"
+  },
+  "spawn": {
+    "position": [0, 1, 5],
+    "rotation": [0, 0, 0]
+  },
+  "objects": [
+    { "asset": "table_wooden", "position": [3, 0, -1], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "table_wooden", "position": [-3, 0, 1], "rotation": [0, 45, 0], "scale": 1.0 },
+    { "asset": "chair_wooden", "position": [4, 0, -1], "rotation": [0, 90, 0], "scale": 1.0 },
+    { "asset": "chair_wooden", "position": [2, 0, -1], "rotation": [0, -90, 0], "scale": 1.0 },
+    { "asset": "chair_wooden", "position": [-2, 0, 1], "rotation": [0, -45, 0], "scale": 1.0 },
+    { "asset": "chair_wooden", "position": [-4, 0, 1], "rotation": [0, 135, 0], "scale": 1.0 },
+    { "asset": "barrel_01", "position": [-6, 0, -4], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "barrel_01", "position": [-6, 0, -3], "rotation": [0, 30, 0], "scale": 1.0 },
+    { "asset": "barrel_01", "position": [-5.5, 0.8, -3.5], "rotation": [0, 60, 0], "scale": 0.9 },
+    { "asset": "crate_01", "position": [6, 0, -4], "rotation": [0, 15, 0], "scale": 1.0 },
+    { "asset": "torch_standing", "position": [-6, 0, 0], "rotation": [0, 0, 0], "scale": 1.0 },
+    { "asset": "torch_standing", "position": [6, 0, 0], "rotation": [0, 0, 0], "scale": 1.0 }
+  ],
+  "npcs": [
+    {
+      "id": "tavern_keeper",
+      "asset": "npc_villager_male",
+      "name": "Burl Deepcup",
+      "position": [0, 0, -4],
+      "rotation": [0, 180, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/tavern_keeper.json"
+    },
+    {
+      "id": "tavern_patron_01",
+      "asset": "npc_villager_male",
+      "name": "Drunk Sailor",
+      "position": [3.5, 0, -0.5],
+      "rotation": [0, 270, 0],
+      "behavior": "idle",
+      "dialogue": "dialogue/tavern_patron.json"
+    }
+  ],
+  "items": [
+    {
+      "id": "tavern_lockbox",
+      "asset": "chest_wooden",
+      "position": [-5, 0.5, -5],
+      "contents": ["gold_50", "key_cellar"]
+    }
+  ],
+  "exits": [
+    {
+      "id": "tavern_exit",
+      "position": [0, 0, 5.5],
+      "exitPosition": [-39, 2, -37],
+      "label": "Exit to Village"
+    }
+  ]
+}

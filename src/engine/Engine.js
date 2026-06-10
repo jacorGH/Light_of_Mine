@@ -8,6 +8,7 @@ import { Inventory } from './Inventory.js';
 import { RadialMenu } from '../ui/RadialMenu.js';
 import { PlayerStats } from '../systems/PlayerStats.js';
 import { EnemySystem } from '../systems/EnemySystem.js';
+import { InteractionSystem } from '../systems/InteractionSystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -61,6 +62,7 @@ export class Engine {
     this.inventory = new Inventory(this);
     this.playerStats = new PlayerStats(this);
     this.enemySystem = new EnemySystem(this);
+    this.interactionSystem = new InteractionSystem(this);
     this.radialMenu = new RadialMenu(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
@@ -202,6 +204,7 @@ export class Engine {
     this.weaponSystem.update(delta);
     this.playerStats.update(delta);
     this.enemySystem.update(delta);
+    this.interactionSystem.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
