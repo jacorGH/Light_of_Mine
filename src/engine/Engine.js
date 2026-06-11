@@ -168,6 +168,11 @@ export class Engine {
     this.player.onWeaponCycle = (direction) => {
       events.emit('player:weapon_cycle', { direction });
     };
+
+    // Long-press action button → open radial menu
+    this.player.onMenuOpen = () => {
+      this.radialMenu.open();
+    };
   }
 
   onResize() {

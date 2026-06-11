@@ -37,6 +37,7 @@ export class PlayerController {
     // Callbacks (set by Engine)
     this.onCombatGesture = null;
     this.onWeaponCycle = null;
+    this.onMenuOpen = null; // long-press action button opens radial menu
 
     // ─── PC CONTROLS ───────────────────────────────────────────────
     if (!this.isMobile) {
@@ -171,6 +172,14 @@ export class PlayerController {
             this.actionTouch.startX = touch.clientX;
             this.actionTouch.startY = touch.clientY;
             this.actionTouch.startTime = performance.now();
+            // Start long-press timer for menu
+            this.actionLongPressTimer = setTimeout(() => {
+              if (this.actionTouch.id !== null) {
+                this.actionTouch.id = null; // consume the touch
+                this.flashActionBtn('≡ Menu');
+                if (this.onMenuOpen) this.onMenuOpen();
+              }
+            }, 500);
           }
           break;
       }
@@ -224,6 +233,8 @@ export class PlayerController {
         this.hideSwipeTrail();
 
       } else if (touch.identifier === this.actionTouch.id) {
+        // Cancel long-press timer (they released before 500ms)
+        clearTimeout(this.actionLongPressTimer);
         this.resolveAction(touch.clientX, touch.clientY);
         this.actionTouch.id = null;
       }
@@ -358,17 +369,18 @@ export class PlayerController {
     });
     document.body.appendChild(this.swipeTrail);
 
-    // Action button area indicator
+    // Action button area indicator — BIGGER for easier touch
     this.actionBtn = document.createElement('div');
     Object.assign(this.actionBtn.style, {
-      position: 'fixed', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
-      width: '80px', height: '40px', borderRadius: '20px',
-      border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.05)',
+      position: 'fixed', bottom: '3%', left: '50%', transform: 'translateX(-50%)',
+      width: '100px', height: '54px', borderRadius: '27px',
+      border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.06)',
       zIndex: '999', pointerEvents: 'none', display: 'flex',
       alignItems: 'center', justifyContent: 'center',
-      color: 'rgba(255,255,255,0.35)', fontFamily: 'monospace', fontSize: '10px',
+      color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '10px',
+      flexDirection: 'column', gap: '2px', lineHeight: '1.2',
     });
-    this.actionBtn.textContent = '↑ JMP  ←→ WPN';
+    this.actionBtn.innerHTML = '↑ Jump ←→ Wpn<br><span style="font-size:8px;opacity:0.5">Hold: Menu</span>';
     document.body.appendChild(this.actionBtn);
 
     // Zone divider line (subtle)
@@ -460,6 +472,46 @@ export class PlayerController {
     return this.groundHeight;
   }
 
+  // ─── COLLISION DETECTION ────────────────────────────────────────
+
+  /**
+   * Check player position against nearby solid objects and push back if overlapping.
+   * Uses simple cylinder-vs-cylinder approach (XZ plane only).
+   */
+  resolveCollisions() {
+    if (!this.scene) return;
+
+    const playerX = this.camera.position.x;
+    const playerZ = this.camera.position.z;
+    const playerRadius = 0.4; // player collision radius
+
+    // Only check objects within a reasonable range (8 units)
+    this.scene.traverse((obj) => {
+      if (!obj.isMesh || !obj.userData || obj.userData.collisionRadius <= 0) return;
+
+      const cr = obj.userData.collisionRadius;
+      if (!cr) return;
+
+      // Get object world position
+      const wp = new THREE.Vector3();
+      obj.getWorldPosition(wp);
+
+      const dx = playerX - wp.x;
+      const dz = playerZ - wp.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const minDist = playerRadius + cr;
+
+      if (dist < minDist && dist > 0.01) {
+        // Push player out
+        const overlap = minDist - dist;
+        const nx = dx / dist;
+        const nz = dz / dist;
+        this.camera.position.x += nx * overlap;
+        this.camera.position.z += nz * overlap;
+      }
+    });
+  }
+
   // ─── UPDATE ─────────────────────────────────────────────────────
 
   update(delta) {
@@ -487,6 +539,9 @@ export class PlayerController {
 
     this.camera.position.addScaledVector(forward, -this.velocity.z);
     this.camera.position.addScaledVector(right, this.velocity.x);
+
+    // ─── COLLISION: push player away from solid objects ──────────
+    this.resolveCollisions();
 
     // Terrain + jump
     const targetGroundY = this.getGroundHeight();

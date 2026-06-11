@@ -470,6 +470,12 @@ export class CellLoader {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(...obj.position);
 
+    // Snap object to terrain height
+    const wx = obj.position[0] + group.position.x;
+    const wz = obj.position[2] + group.position.z;
+    const groundY = this.getTerrainHeight(wx, wz);
+    mesh.position.y = groundY + (obj.position[1] || 0);
+
     if (obj.rotation) {
       mesh.rotation.set(
         THREE.MathUtils.degToRad(obj.rotation[0]),
@@ -487,7 +493,18 @@ export class CellLoader {
 
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.userData = { type: 'object', asset: obj.asset };
+
+    // Collision radius for solid objects (player can't walk through)
+    let collisionRadius = 0;
+    if (asset.includes('tree')) collisionRadius = 0.5 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('rock_cliff')) collisionRadius = 2.5 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('rock')) collisionRadius = 1.2 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('house') || asset.includes('structure') || asset.includes('hut')) collisionRadius = 2.5 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('ruin_tower')) collisionRadius = 2.5 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('ruin_wall')) collisionRadius = 1.5 * (typeof s === 'number' ? s : 1);
+    else if (asset.includes('well')) collisionRadius = 0.8;
+
+    mesh.userData = { type: 'object', asset: obj.asset, collisionRadius };
     group.add(mesh);
   }
 
@@ -504,8 +521,12 @@ export class CellLoader {
     const geometry = new THREE.CapsuleGeometry(0.4, 1.2, 4, 8);
     const material = this.getMaterial(color);
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(...npc.position);
-    mesh.position.y += 1;
+
+    // Position NPC on terrain surface using global height function
+    const wx = npc.position[0] + group.position.x;
+    const wz = npc.position[2] + group.position.z;
+    const groundY = this.getTerrainHeight(wx, wz);
+    mesh.position.set(npc.position[0], groundY + 1, npc.position[2]);
 
     if (npc.rotation) {
       mesh.rotation.y = THREE.MathUtils.degToRad(npc.rotation[1] || 0);

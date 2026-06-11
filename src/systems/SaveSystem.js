@@ -395,11 +395,17 @@ export class SaveSystem {
   // =====================================================================
 
   /**
-   * Show a floating notification in the center of the screen that fades out.
-   * @param {string} message - Text to display
-   * @param {string} color - CSS color for the text
+   * Show a subtle save icon in the corner (for auto-saves) or a brief
+   * centered message (for manual save/load).
    */
   _showNotification(message, color) {
+    // For auto-saves (game:saved from cells_changed), show just a small icon
+    if (message === 'Game Saved') {
+      this._showSaveIcon();
+      return;
+    }
+
+    // For manual actions (Load, errors), show centered text briefly
     const el = document.createElement('div');
     Object.assign(el.style, {
       position: 'fixed',
@@ -408,30 +414,54 @@ export class SaveSystem {
       transform: 'translate(-50%, -50%)',
       color: color,
       fontFamily: 'monospace',
-      fontSize: '18px',
+      fontSize: '16px',
       fontWeight: 'bold',
       textShadow: '0 2px 6px rgba(0,0,0,0.8)',
       zIndex: '7000',
       pointerEvents: 'none',
       opacity: '1',
-      transition: 'opacity 1.5s ease, transform 1.5s ease',
+      transition: 'opacity 1s ease',
     });
     el.textContent = message;
     document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; }, 800);
+    setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 1800);
+  }
 
-    // Fade out after a brief delay
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'translate(-50%, -60%)';
-      }, 500);
-    });
+  /**
+   * Show a small save icon in the top-right corner that briefly pulses.
+   */
+  _showSaveIcon() {
+    if (!this._saveIconEl) {
+      this._saveIconEl = document.createElement('div');
+      Object.assign(this._saveIconEl.style, {
+        position: 'fixed',
+        top: '8px',
+        right: '50px',
+        width: '20px',
+        height: '20px',
+        borderRadius: '3px',
+        background: 'rgba(0,0,0,0.5)',
+        border: '1px solid rgba(100,200,100,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '12px',
+        color: '#66cc88',
+        zIndex: '1000',
+        pointerEvents: 'none',
+        opacity: '0',
+        transition: 'opacity 0.3s ease',
+      });
+      this._saveIconEl.textContent = '💾';
+      document.body.appendChild(this._saveIconEl);
+    }
 
-    // Remove from DOM after animation completes
-    setTimeout(() => {
-      if (el.parentNode) {
-        el.parentNode.removeChild(el);
-      }
-    }, 2000);
+    // Pulse: show briefly then fade
+    this._saveIconEl.style.opacity = '1';
+    clearTimeout(this._saveIconFadeTimer);
+    this._saveIconFadeTimer = setTimeout(() => {
+      this._saveIconEl.style.opacity = '0';
+    }, 1200);
   }
 }
