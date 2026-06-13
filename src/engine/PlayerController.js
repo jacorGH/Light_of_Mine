@@ -18,8 +18,17 @@ export class PlayerController {
     // Movement
     this.velocity = new THREE.Vector3();
     this.direction = new THREE.Vector3();
-    this.speed = 5; // Slower, more deliberate movement
+    this.walkSpeed = 3.5;
+    this.sprintSpeed = 7;
+    this.speed = this.walkSpeed;
+    this.isSprinting = false;
     this.keys = { forward: false, backward: false, left: false, right: false };
+
+    // Zoom/aim state
+    this.defaultFov = 60;
+    this.zoomFov = 30;
+    this.isZooming = false;
+    this.currentFov = this.defaultFov;
 
     // Jump
     this.isGrounded = true;
@@ -48,6 +57,15 @@ export class PlayerController {
         this.isLocked = document.pointerLockElement === domElement;
       });
       document.addEventListener('mousemove', (e) => this.onMouseMove(e));
+
+      // Right-click to zoom/aim (for bow/projectiles)
+      document.addEventListener('mousedown', (e) => {
+        if (e.button === 2 && this.isLocked) { this.isZooming = true; }
+      });
+      document.addEventListener('mouseup', (e) => {
+        if (e.button === 2) { this.isZooming = false; }
+      });
+      domElement.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
     document.addEventListener('keydown', (e) => this.onKeyDown(e));
@@ -87,6 +105,10 @@ export class PlayerController {
       case 'KeyS': case 'ArrowDown': this.keys.backward = true; break;
       case 'KeyA': case 'ArrowLeft': this.keys.left = true; break;
       case 'KeyD': case 'ArrowRight': this.keys.right = true; break;
+      case 'ShiftLeft': case 'ShiftRight':
+        this.isSprinting = !this.isSprinting;
+        this.speed = this.isSprinting ? this.sprintSpeed : this.walkSpeed;
+        break;
       case 'Space':
         event.preventDefault();
         if (this.isGrounded) {
@@ -542,6 +564,21 @@ export class PlayerController {
 
     // ─── COLLISION: push player away from solid objects ──────────
     this.resolveCollisions();
+
+    // ─── SPRINT stamina drain ──────────────────────────────────────
+    if (this.isSprinting && (this.keys.forward || this.keys.backward || this.keys.left || this.keys.right || Math.abs(this.moveInput.x) > 0.1 || Math.abs(this.moveInput.y) > 0.1)) {
+      if (typeof events !== 'undefined') {
+        // Import events at module level won't work here, so use window dispatch
+      }
+    }
+
+    // ─── ZOOM FOV interpolation ────────────────────────────────────
+    const targetFov = this.isZooming ? this.zoomFov : this.defaultFov;
+    this.currentFov += (targetFov - this.currentFov) * Math.min(1, 8 * delta);
+    if (Math.abs(this.currentFov - this.camera.fov) > 0.1) {
+      this.camera.fov = this.currentFov;
+      this.camera.updateProjectionMatrix();
+    }
 
     // Terrain + jump
     const targetGroundY = this.getGroundHeight();

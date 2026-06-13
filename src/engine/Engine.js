@@ -6,6 +6,7 @@ import { GrassCutter } from './GrassCutter.js';
 import { WeaponSystem } from './WeaponSystem.js';
 import { Inventory } from './Inventory.js';
 import { RadialMenu } from '../ui/RadialMenu.js';
+import { MapUI } from '../ui/MapUI.js';
 import { PlayerStats } from '../systems/PlayerStats.js';
 import { EnemySystem } from '../systems/EnemySystem.js';
 import { InteractionSystem } from '../systems/InteractionSystem.js';
@@ -72,6 +73,7 @@ export class Engine {
     this.saveSystem = new SaveSystem(this);
     this.skySystem = new SkySystem(this);
     this.radialMenu = new RadialMenu(this);
+    this.mapUI = new MapUI(this);
 
     // ─── EVENT WIRING ─────────────────────────────────────────────
     this.setupEvents();
@@ -219,6 +221,7 @@ export class Engine {
     this.enemySystem.update(delta);
     this.interactionSystem.update();
     this.skySystem.update(delta);
+    this.mapUI.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
