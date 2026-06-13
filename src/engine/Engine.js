@@ -149,6 +149,15 @@ export class Engine {
       }
     });
 
+    // Radial menu: equip spell (spells are in the weapons array too)
+    events.on('player:equip_spell', (data) => {
+      const idx = this.weaponSystem.weapons.findIndex(w => w.id === data.id);
+      if (idx !== -1) {
+        this.weaponSystem.currentWeaponIndex = idx;
+        this.weaponSystem.showCurrentWeapon();
+      }
+    });
+
     // Radial menu: settings (handedness)
     events.on('menu:item_selected', (data) => {
       if (data.id === 'hand_right') {

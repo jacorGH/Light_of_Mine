@@ -170,6 +170,14 @@ export class PlayerController {
             this.moveTouch.startX = touch.clientX;
             this.moveTouch.startY = touch.clientY;
             this.updateJoystickVisual(touch.clientX, touch.clientY);
+            // Double-tap detection for sprint toggle
+            const now = performance.now();
+            if (now - (this._lastMoveTapTime || 0) < 300) {
+              this.isSprinting = !this.isSprinting;
+              this.speed = this.isSprinting ? this.sprintSpeed : this.walkSpeed;
+              this.flashActionBtn(this.isSprinting ? '🏃 Sprint' : '🚶 Walk');
+            }
+            this._lastMoveTapTime = now;
           }
           break;
         case 'look':
@@ -186,6 +194,15 @@ export class PlayerController {
             this.combatTouch.startY = touch.clientY;
             this.combatTouch.startTime = performance.now();
             this.showSwipeTrail(touch.clientX, touch.clientY);
+            // Start zoom timer (hold 400ms = zoom/aim mode)
+            this._combatZoomTimer = setTimeout(() => {
+              if (this.combatTouch.id !== null) {
+                this.isZooming = true;
+                this._combatIsAiming = true;
+                this._aimStartY = touch.clientY;
+                this.drawStrength = 0;
+              }
+            }, 400);
           }
           break;
         case 'action':
@@ -233,7 +250,11 @@ export class PlayerController {
 
       } else if (touch.identifier === this.combatTouch.id) {
         this.updateSwipeTrail(touch.clientX, touch.clientY);
-
+        // If in aim mode, drag down = draw strength
+        if (this._combatIsAiming) {
+          const dragDown = touch.clientY - this._aimStartY;
+          this.drawStrength = Math.max(0, Math.min(1, dragDown / 100));
+        }
       }
     }
   }
@@ -250,7 +271,18 @@ export class PlayerController {
         this.lookTouch.id = null;
 
       } else if (touch.identifier === this.combatTouch.id) {
-        this.resolveCombatSwipe(touch.clientX, touch.clientY);
+        clearTimeout(this._combatZoomTimer);
+        if (this._combatIsAiming) {
+          // Release aim = fire with draw strength
+          this.isZooming = false;
+          this._combatIsAiming = false;
+          if (this.onCombatGesture) {
+            this.onCombatGesture({ type: 'ranged_release', direction: 'center', label: '', power: this.drawStrength || 0.5 });
+          }
+          this.drawStrength = 0;
+        } else {
+          this.resolveCombatSwipe(touch.clientX, touch.clientY);
+        }
         this.combatTouch.id = null;
         this.hideSwipeTrail();
 
@@ -290,21 +322,21 @@ export class PlayerController {
     let type, direction, label;
 
     if (deg >= 60 && deg < 120) {
-      type = 'slash_up'; direction = 'up'; label = '↑ Slash Up';
+      type = 'slash_up'; direction = 'up'; label = '↑';
     } else if (deg >= 120 && deg < 165) {
-      type = 'slash_up_left'; direction = 'up-left'; label = '↖ Slash';
+      type = 'slash_up_left'; direction = 'up-left'; label = '↖';
     } else if (deg >= 15 && deg < 60) {
-      type = 'slash_up_right'; direction = 'up-right'; label = '↗ Slash';
+      type = 'slash_up_right'; direction = 'up-right'; label = '↗';
     } else if (deg >= 240 && deg < 300) {
-      type = 'slash_down'; direction = 'down'; label = '↓ Slash Down';
+      type = 'slash_down'; direction = 'down'; label = '↓';
     } else if (deg >= 195 && deg < 240) {
-      type = 'slash_down_left'; direction = 'down-left'; label = '↙ Slash';
+      type = 'slash_down_left'; direction = 'down-left'; label = '↙';
     } else if (deg >= 300 && deg < 345) {
-      type = 'slash_down_right'; direction = 'down-right'; label = '↘ Slash';
+      type = 'slash_down_right'; direction = 'down-right'; label = '↘';
     } else if (deg >= 165 && deg < 195) {
-      type = 'slash_left'; direction = 'left'; label = '← Sweep';
+      type = 'slash_left'; direction = 'left'; label = '←';
     } else {
-      type = 'slash_right'; direction = 'right'; label = '→ Sweep';
+      type = 'slash_right'; direction = 'right'; label = '→';
     }
 
     this.showCombatLabel(label);
