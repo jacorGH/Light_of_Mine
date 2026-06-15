@@ -89,69 +89,20 @@ export class Engine {
    * This is the ONLY place systems connect to each other.
    */
   setupEvents() {
-    // ─── PHYSICAL WEAPON ATTACK (normal swipe) ────────────────────
-    events.on('player:attack', (data) => {
-      if (this.paused) return;
-
-      const weapon = this.weaponSystem.currentWeapon;
-      data.weaponType = weapon.type;
-
-      // Stamina check
-      const staminaCost = weapon.type === 'melee' ? 8 : 5;
-      if (this.playerStats.stamina < staminaCost) return;
-      this.playerStats.drainStamina(staminaCost);
-
-      this.weaponSystem.attackWeapon(data);
-
-      if (weapon.type === 'melee') {
-        events.emit('combat:slash', data);
-      }
-    });
-
-    // ─── SPELL CAST (hold+release in combat zone) ─────────────────
-    events.on('player:cast', (data) => {
-      if (this.paused) return;
-
-      const spell = this.weaponSystem.currentSpell;
-
-      // Heal: special case
-      if (spell.id === 'heal') {
-        if (this.playerStats.magicka >= spell.magickaCost) {
-          this.playerStats.drainMagicka(spell.magickaCost);
-          this.playerStats.heal(30);
-          this.weaponSystem.castSpell(data);
-        }
-        return;
-      }
-
-      // Magicka check for offensive spells
-      if (this.playerStats.magicka < (spell.magickaCost || 0)) return;
-      this.playerStats.drainMagicka(spell.magickaCost || 0);
-
-      // Small stamina cost for casting too
-      this.playerStats.drainStamina(3);
-
-      this.weaponSystem.castSpell(data);
-    });
-
     // ─── COMBAT SLASH → grass cutter ──────────────────────────────
     events.on('combat:slash', () => {
       if (this.paused) return;
       this.grassCutter.slash();
     });
 
-    // ─── WEAPON CYCLING (physical) ────────────────────────────────
+    // ─── CYCLING ──────────────────────────────────────────────────
     events.on('player:weapon_cycle', (data) => {
       if (this.paused) return;
-      if (data.direction > 0) this.weaponSystem.nextWeapon();
-      else this.weaponSystem.prevWeapon();
+      this.weaponSystem.cycleHand('right', data.direction);
     });
-
-    // ─── SPELL CYCLING (magic) ────────────────────────────────────
     events.on('player:spell_cycle', (data) => {
       if (this.paused) return;
-      if (data.direction > 0) this.weaponSystem.nextSpell();
-      else this.weaponSystem.prevSpell();
+      this.weaponSystem.cycleHand('left', data.direction);
     });
 
     // ─── ITEM / WORLD EVENTS ──────────────────────────────────────
@@ -163,15 +114,9 @@ export class Engine {
     events.on('game:paused', () => { this.paused = true; });
     events.on('game:resumed', () => { this.paused = false; });
 
-    // ─── RADIAL MENU: equip from menu ─────────────────────────────
-    events.on('player:equip_weapon', (data) => {
-      this.weaponSystem.equipWeaponById(data.id);
-    });
-    events.on('player:equip_spell', (data) => {
-      this.weaponSystem.equipSpellById(data.id);
-    });
-
-    // ─── RADIAL MENU: settings ────────────────────────────────────
+    // ─── RADIAL MENU ──────────────────────────────────────────────
+    events.on('player:equip_weapon', (data) => { this.weaponSystem.equipWeaponById(data.id); });
+    events.on('player:equip_spell', (data) => { this.weaponSystem.equipSpellById(data.id); });
     events.on('menu:item_selected', (data) => {
       if (data.id === 'hand_right') { this.weaponSystem.dominantHand = 'right'; this.weaponSystem.showActiveViewmodel(); }
       else if (data.id === 'hand_left') { this.weaponSystem.dominantHand = 'left'; this.weaponSystem.showActiveViewmodel(); }
@@ -183,35 +128,32 @@ export class Engine {
 
       const hand = gesture.hand || 'right';
       const wpn = this.weaponSystem;
-      const isTwoHanded = wpn.currentWeapon.twoHanded || wpn.currentWeapon.id === 'bow';
+      const handItem = wpn.getHandItem(hand);
+      const isTwoHanded = wpn.leftHand === wpn.rightHand && wpn.leftHand.twoHanded;
 
+      // Hold+release: strong attack or ranged aim depending on what's in hand
       if (gesture.type === 'ranged_release') {
-        // Hold+release always casts spell (unless two-handed weapon equipped)
-        if (isTwoHanded) {
-          events.emit('player:attack', gesture);
+        // Only zoom/ranged if the hand has a ranged item
+        if (handItem && handItem.type === 'projectile') {
+          this.doHandAttack(hand, gesture);
         } else {
-          events.emit('player:cast', gesture);
+          // Strong strike (melee hold = power attack)
+          gesture.power = 1.0;
+          this.doHandAttack(hand, gesture);
         }
-      } else if (isTwoHanded) {
-        // Two-handed: any touch = weapon attack
-        events.emit('player:attack', gesture);
-      } else {
-        // Dual-wield: hand determines what fires
-        // Dominant hand = weapon, off-hand = spell
-        // (e.g., right-handed: right side = weapon, left side = spell)
-        const dominantSide = wpn.dominantHand; // 'right' or 'left'
-        const isWeaponHand = (hand === dominantSide) || (hand === 'both');
-        const isSpellHand = (hand !== dominantSide) || (hand === 'both');
+        return;
+      }
 
-        if (hand === 'both') {
-          // Center swipe = both fire (future: combo/blend)
-          events.emit('player:attack', gesture);
-          events.emit('player:cast', gesture);
-        } else if (isWeaponHand) {
-          events.emit('player:attack', gesture);
-        } else if (isSpellHand) {
-          events.emit('player:cast', gesture);
-        }
+      if (isTwoHanded) {
+        // Two-handed: any hand triggers the weapon
+        this.doHandAttack('right', gesture);
+      } else if (hand === 'both') {
+        // Center swipe: both hands (future combo placeholder)
+        this.doHandAttack('left', gesture);
+        this.doHandAttack('right', gesture);
+      } else {
+        // Use the specific hand that was swiped on
+        this.doHandAttack(hand, gesture);
       }
     };
 
@@ -230,6 +172,49 @@ export class Engine {
     this.player.onSneakChanged = (isSneaking) => {
       events.emit('player:sneak_changed', { sneaking: isSneaking });
     };
+
+    // Tell PlayerController how to check if a hand is ranged (for zoom logic)
+    this.player._isHandRanged = (hand) => {
+      return this.weaponSystem.isHandRanged(hand);
+    };
+  }
+
+  /**
+   * Execute an attack with whatever is in the specified hand.
+   * Handles resource costs, animations, and combat events.
+   */
+  doHandAttack(hand, gesture) {
+    const item = this.weaponSystem.getHandItem(hand);
+    if (!item) return;
+
+    // Heal: special self-heal, no projectile
+    if (item.id === 'heal') {
+      if (this.playerStats.magicka >= (item.magickaCost || 20)) {
+        this.playerStats.drainMagicka(item.magickaCost || 20);
+        this.playerStats.heal(30);
+        this.weaponSystem.useHand(hand, gesture);
+      }
+      return;
+    }
+
+    // Resource costs
+    if (item.magickaCost) {
+      if (this.playerStats.magicka < item.magickaCost) return;
+      this.playerStats.drainMagicka(item.magickaCost);
+      this.playerStats.drainStamina(3); // small stamina for casting
+    } else {
+      const staCost = item.type === 'melee' ? 8 : 5;
+      if (this.playerStats.stamina < staCost) return;
+      this.playerStats.drainStamina(staCost);
+    }
+
+    // Fire the attack
+    this.weaponSystem.useHand(hand, gesture);
+
+    // Melee = slash event (damages enemies in arc, cuts grass)
+    if (item.type === 'melee') {
+      events.emit('combat:slash', gesture);
+    }
   }
 
   onResize() {

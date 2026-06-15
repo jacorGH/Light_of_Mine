@@ -33,21 +33,21 @@ export class WeaponSystem {
       { id: 'heal', name: 'Heal', type: 'spell', range: 0, damage: 0, cooldown: 1.0, magickaCost: 20 },
     ];
 
-    // Combined list for viewmodel building (kept for mesh lookup)
+    // ─── HAND SLOTS (fully flexible — anything in either hand) ─────
+    // Player assigns items to left/right hand freely.
+    this.leftHand = this.spells[0];          // fireball default
+    this.rightHand = this.physicalWeapons[1]; // sword default
+
+    // All available items for cycling/assignment
     this.allItems = [...this.physicalWeapons, ...this.spells];
 
-    // Current indices (independent cycling)
-    this.weaponIndex = 1; // sword
-    this.spellIndex = 0;  // fireball
-
-    // Active display mode: 'weapon' or 'spell'
-    this.activeSlot = 'weapon';
-
     // State
-    this.cooldown = 0;
+    this.cooldownLeft = 0;
+    this.cooldownRight = 0;
     this.attackTimer = 0;
     this.isAttacking = false;
     this.attackDirection = 'right';
+    this.attackingHand = 'right';
 
     // Handedness
     this.dominantHand = 'right';
@@ -73,148 +73,145 @@ export class WeaponSystem {
   // ─── GETTERS ────────────────────────────────────────────────────
 
   get currentWeapon() {
-    return this.physicalWeapons[this.weaponIndex];
+    // Returns whichever hand has a physical weapon (for backward compat)
+    if (this.rightHand && this.rightHand.type === 'melee') return this.rightHand;
+    if (this.leftHand && this.leftHand.type === 'melee') return this.leftHand;
+    return this.rightHand || this.physicalWeapons[0];
   }
 
   get currentSpell() {
-    return this.spells[this.spellIndex];
+    // Returns whichever hand has a spell
+    if (this.leftHand && (this.leftHand.type === 'spell' || this.leftHand.magickaCost)) return this.leftHand;
+    if (this.rightHand && (this.rightHand.type === 'spell' || this.rightHand.magickaCost)) return this.rightHand;
+    return this.spells[0];
   }
 
-  /** Returns whichever is currently "active" for display/attack purposes */
   get activeItem() {
-    return this.activeSlot === 'weapon' ? this.currentWeapon : this.currentSpell;
+    return this.rightHand;
   }
 
-  // ─── CYCLING ────────────────────────────────────────────────────
+  getHandItem(hand) {
+    return hand === 'left' ? this.leftHand : this.rightHand;
+  }
 
-  nextWeapon() {
-    this.weaponIndex = (this.weaponIndex + 1) % this.physicalWeapons.length;
-    this.activeSlot = 'weapon';
+  // ─── HAND ASSIGNMENT ────────────────────────────────────────────
+
+  assignToHand(hand, item) {
+    if (hand === 'left') this.leftHand = item;
+    else this.rightHand = item;
+
+    // If item is two-handed, take both slots
+    if (item.twoHanded) {
+      this.leftHand = item;
+      this.rightHand = item;
+    }
+
     this.showActiveViewmodel();
-    events.emit('weapon:changed', { weapon: this.currentWeapon, spell: this.currentSpell });
+    events.emit('weapon:changed', { leftHand: this.leftHand, rightHand: this.rightHand });
   }
 
-  prevWeapon() {
-    this.weaponIndex = (this.weaponIndex - 1 + this.physicalWeapons.length) % this.physicalWeapons.length;
-    this.activeSlot = 'weapon';
-    this.showActiveViewmodel();
-    events.emit('weapon:changed', { weapon: this.currentWeapon, spell: this.currentSpell });
+  // ─── CYCLING (per hand) ─────────────────────────────────────────
+
+  cycleHand(hand, direction) {
+    const current = hand === 'left' ? this.leftHand : this.rightHand;
+    const idx = this.allItems.findIndex(i => i.id === current.id);
+    const newIdx = (idx + direction + this.allItems.length) % this.allItems.length;
+    const newItem = this.allItems[newIdx];
+    this.assignToHand(hand, newItem);
   }
 
-  nextSpell() {
-    this.spellIndex = (this.spellIndex + 1) % this.spells.length;
-    this.activeSlot = 'spell';
-    this.showActiveViewmodel();
-    events.emit('weapon:changed', { weapon: this.currentWeapon, spell: this.currentSpell });
-  }
-
-  prevSpell() {
-    this.spellIndex = (this.spellIndex - 1 + this.spells.length) % this.spells.length;
-    this.activeSlot = 'spell';
-    this.showActiveViewmodel();
-    events.emit('weapon:changed', { weapon: this.currentWeapon, spell: this.currentSpell });
-  }
+  nextWeapon() { this.cycleHand('right', 1); }
+  prevWeapon() { this.cycleHand('right', -1); }
+  nextSpell() { this.cycleHand('left', 1); }
+  prevSpell() { this.cycleHand('left', -1); }
 
   equipWeaponById(id) {
-    const idx = this.physicalWeapons.findIndex(w => w.id === id);
-    if (idx !== -1) { this.weaponIndex = idx; this.activeSlot = 'weapon'; this.showActiveViewmodel(); }
+    const item = this.allItems.find(i => i.id === id);
+    if (item) this.assignToHand('right', item);
   }
 
   equipSpellById(id) {
-    const idx = this.spells.findIndex(s => s.id === id);
-    if (idx !== -1) { this.spellIndex = idx; this.activeSlot = 'spell'; this.showActiveViewmodel(); }
+    const item = this.allItems.find(i => i.id === id);
+    if (item) this.assignToHand('left', item);
   }
 
   // ─── VIEWMODEL ──────────────────────────────────────────────────
 
   showActiveViewmodel() {
-    const rightOffset = 0.22;
-    const leftOffset = -0.22;
-    const weaponSide = this.dominantHand === 'right' ? rightOffset : leftOffset;
-    const spellSide = this.dominantHand === 'right' ? leftOffset : rightOffset;
+    Object.values(this.weaponMeshes).forEach((m) => { m.visible = false; m.scale.set(1,1,1); });
 
-    Object.values(this.weaponMeshes).forEach((m) => { m.visible = false; });
+    const lItem = this.leftHand;
+    const rItem = this.rightHand;
+    const isTwoHanded = lItem === rItem && lItem.twoHanded;
 
-    const weapon = this.currentWeapon;
-    const spell = this.currentSpell;
-
-    if (weapon.twoHanded) {
-      // Two-handed: show only weapon, centered
-      const mesh = this.weaponMeshes[weapon.id];
+    if (isTwoHanded) {
+      // Two-handed: single centered viewmodel
+      const mesh = this.weaponMeshes[lItem.id];
       if (mesh) {
         mesh.visible = true;
         mesh.position.set(0, -0.3, -0.6);
         mesh.rotation.set(0, 0, 0);
       }
     } else {
-      // Dual-wield: show weapon on dominant side, spell on off-hand side
-      const wMesh = this.weaponMeshes[weapon.id];
-      const sMesh = this.weaponMeshes[spell.id];
+      // Show left hand item on left, right hand item on right
+      const lMesh = this.weaponMeshes[lItem.id];
+      const rMesh = this.weaponMeshes[rItem.id];
 
-      if (wMesh) {
-        wMesh.visible = true;
-        wMesh.position.set(weaponSide, -0.3, -0.6);
-        wMesh.rotation.set(0, 0, 0);
+      if (lMesh) {
+        lMesh.visible = true;
+        lMesh.position.set(-0.22, -0.35, -0.65);
+        lMesh.rotation.set(0, 0, 0);
+        lMesh.scale.set(0.85, 0.85, 0.85);
       }
-      if (sMesh && sMesh !== wMesh) {
-        sMesh.visible = true;
-        sMesh.position.set(spellSide, -0.35, -0.65);
-        sMesh.rotation.set(0, 0, 0);
-        sMesh.scale.set(0.8, 0.8, 0.8); // slightly smaller off-hand
+      if (rMesh && rMesh !== lMesh) {
+        rMesh.visible = true;
+        rMesh.position.set(0.22, -0.3, -0.6);
+        rMesh.rotation.set(0, 0, 0);
       }
     }
 
     this.updateHUD();
   }
 
-  // Kept for backward compat
   showCurrentWeapon() { this.showActiveViewmodel(); }
 
-  // ─── ATTACK ─────────────────────────────────────────────────────
+  // ─── ATTACK (hand-based) ──────────────────────────────────────
 
   /**
-   * Physical weapon attack (from normal swipe).
+   * Use whatever is in the specified hand.
+   * @param {string} hand - 'left' or 'right'
+   * @param {object} gesture - attack gesture data
    */
-  attackWeapon(gesture) {
-    const weapon = this.currentWeapon;
-    if (this.cooldown > 0) return false;
-    this.cooldown = weapon.cooldown;
+  useHand(hand, gesture) {
+    const item = this.getHandItem(hand);
+    if (!item) return false;
+
+    const cd = hand === 'left' ? 'cooldownLeft' : 'cooldownRight';
+    if (this[cd] > 0) return false;
+    this[cd] = item.cooldown;
+
     this.isAttacking = true;
     this.attackTimer = 0;
     this.attackDirection = gesture.direction || 'right';
-    this.activeSlot = 'weapon';
-    this.showActiveViewmodel();
+    this.attackingHand = hand;
 
-    if (weapon.type === 'projectile') {
-      this.fireProjectile(weapon);
+    if (item.type === 'projectile') {
+      this.fireProjectile(item);
     }
     return true;
   }
+
+  /** Legacy wrapper */
+  attackWeapon(gesture) { return this.useHand('right', gesture); }
+  castSpell(gesture) { return this.useHand('left', gesture); }
+  attack(gesture) { return this.useHand(gesture.hand || 'right', gesture); }
 
   /**
-   * Spell cast (from hold-release or spell-specific trigger).
+   * Whether an item in a hand is ranged (for zoom logic).
    */
-  castSpell(gesture) {
-    const spell = this.currentSpell;
-    if (this.cooldown > 0) return false;
-    this.cooldown = spell.cooldown;
-    this.isAttacking = true;
-    this.attackTimer = 0;
-    this.attackDirection = gesture.direction || 'center';
-    this.activeSlot = 'spell';
-    this.showActiveViewmodel();
-
-    if (spell.type === 'projectile') {
-      this.fireProjectile(spell);
-    }
-    // Heal is handled by Engine (no projectile)
-    return true;
-  }
-
-  /** Legacy: route to correct method based on activeSlot */
-  attack(gesture) {
-    if (this.activeSlot === 'spell') return this.castSpell(gesture);
-    return this.attackWeapon(gesture);
+  isHandRanged(hand) {
+    const item = this.getHandItem(hand);
+    return item && item.type === 'projectile';
   }
 
   fireProjectile(item) {
@@ -294,55 +291,64 @@ export class WeaponSystem {
   // ─── HUD ────────────────────────────────────────────────────────
 
   createHUD() {
-    // Remove old HUD if exists
     if (this.weaponHUD && this.weaponHUD.parentNode) this.weaponHUD.parentNode.removeChild(this.weaponHUD);
 
-    this.weaponHUD = document.createElement('div');
-    Object.assign(this.weaponHUD.style, {
-      position: 'fixed', bottom: '12px', right: '12px',
-      display: 'flex', gap: '8px', alignItems: 'flex-end',
+    // Left hand HUD (center-left of screen)
+    this.leftHUD = document.createElement('div');
+    Object.assign(this.leftHUD.style, {
+      position: 'fixed', bottom: '55%', left: '8px',
+      textAlign: 'center', padding: '4px 6px',
+      border: '1.5px solid rgba(100,180,255,0.5)', borderRadius: '8px',
+      background: 'rgba(0,0,0,0.4)',
       zIndex: '1000', pointerEvents: 'none',
-      fontFamily: 'monospace', fontSize: '11px',
+      fontFamily: 'monospace', fontSize: '10px',
       textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+      opacity: '0.8',
     });
+    document.body.appendChild(this.leftHUD);
+
+    // Right hand HUD (center-right of screen)
+    this.rightHUD = document.createElement('div');
+    Object.assign(this.rightHUD.style, {
+      position: 'fixed', bottom: '55%', right: '8px',
+      textAlign: 'center', padding: '4px 6px',
+      border: '1.5px solid rgba(255,200,100,0.5)', borderRadius: '8px',
+      background: 'rgba(0,0,0,0.4)',
+      zIndex: '1000', pointerEvents: 'none',
+      fontFamily: 'monospace', fontSize: '10px',
+      textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+      opacity: '0.8',
+    });
+    document.body.appendChild(this.rightHUD);
+
+    // Keep old reference for compat (hidden)
+    this.weaponHUD = document.createElement('div');
+    this.weaponHUD.style.display = 'none';
     document.body.appendChild(this.weaponHUD);
+
     this.updateHUD();
   }
 
   updateHUD() {
-    const w = this.currentWeapon;
-    const s = this.currentSpell;
-    const wIcon = { fist: '👊', sword: '⚔', bow: '🏹' }[w.id] || '⚔';
-    const sIcon = { fireball: '🔥', icicle: '❄', heal: '💚' }[s.id] || '✨';
+    const lItem = this.leftHand;
+    const rItem = this.rightHand;
+    const isTwoHanded = lItem === rItem && lItem.twoHanded;
 
-    // Position HUD icons on the side they're equipped to
-    const isRightHanded = this.dominantHand === 'right';
+    const getIcon = (id) => ({ fist:'👊', sword:'⚔', bow:'🏹', fireball:'🔥', icicle:'❄', heal:'💚' }[id] || '•');
 
-    if (w.twoHanded) {
-      // Two-handed: single centered slot
-      this.weaponHUD.innerHTML = `
-        <div style="text-align:center;padding:4px 10px;border:1.5px solid rgba(255,200,100,0.7);border-radius:6px;background:rgba(0,0,0,0.5)">
-          <div style="font-size:18px">${wIcon}</div>
-          <div style="color:rgba(255,255,255,0.5);font-size:8px;margin-top:2px">${w.name} (2H)</div>
-        </div>
-      `;
+    if (isTwoHanded) {
+      this.leftHUD.style.display = 'none';
+      this.rightHUD.innerHTML = `<div style="font-size:18px">${getIcon(rItem.id)}</div><div style="color:rgba(255,200,100,0.6);font-size:8px">${rItem.name} (2H)</div>`;
+      this.rightHUD.style.left = '50%';
+      this.rightHUD.style.right = 'auto';
+      this.rightHUD.style.transform = 'translateX(-50%)';
     } else {
-      // Dual: weapon on dominant side, spell on off-hand side
-      const weaponEl = `<div style="text-align:center;padding:4px 8px;border:1.5px solid rgba(255,200,100,0.6);border-radius:6px;background:rgba(0,0,0,0.5)">
-        <div style="font-size:16px">${wIcon}</div>
-        <div style="color:rgba(255,200,100,0.6);font-size:8px;margin-top:1px">${w.name}</div>
-      </div>`;
-      const spellEl = `<div style="text-align:center;padding:4px 8px;border:1.5px solid rgba(100,180,255,0.6);border-radius:6px;background:rgba(0,0,0,0.5)">
-        <div style="font-size:16px">${sIcon}</div>
-        <div style="color:rgba(100,180,255,0.6);font-size:8px;margin-top:1px">${s.name}</div>
-      </div>`;
-
-      // Order: dominant side first (visually matches hand position on screen)
-      if (isRightHanded) {
-        this.weaponHUD.innerHTML = spellEl + weaponEl; // left=spell, right=weapon
-      } else {
-        this.weaponHUD.innerHTML = weaponEl + spellEl; // left=weapon, right=spell
-      }
+      this.leftHUD.style.display = 'block';
+      this.rightHUD.style.left = 'auto';
+      this.rightHUD.style.right = '8px';
+      this.rightHUD.style.transform = 'none';
+      this.leftHUD.innerHTML = `<div style="font-size:16px">${getIcon(lItem.id)}</div><div style="color:rgba(100,180,255,0.6);font-size:8px">${lItem.name}</div>`;
+      this.rightHUD.innerHTML = `<div style="font-size:16px">${getIcon(rItem.id)}</div><div style="color:rgba(255,200,100,0.6);font-size:8px">${rItem.name}</div>`;
     }
   }
 
@@ -415,10 +421,11 @@ export class WeaponSystem {
   // ─── UPDATE ─────────────────────────────────────────────────────
 
   update(delta) {
-    if (this.cooldown > 0) this.cooldown -= delta;
+    if (this.cooldownLeft > 0) this.cooldownLeft -= delta;
+    if (this.cooldownRight > 0) this.cooldownRight -= delta;
 
-    const item = this.activeItem;
-    const mesh = this.weaponMeshes[item.id];
+    const item = this.getHandItem(this.attackingHand);
+    const mesh = item ? this.weaponMeshes[item.id] : null;
     const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
 
     // Idle bob — animate ALL visible meshes

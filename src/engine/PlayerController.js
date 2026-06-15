@@ -210,13 +210,22 @@ export class PlayerController {
             this.combatTouch.startY = touch.clientY;
             this.combatTouch.startTime = performance.now();
             this.showSwipeTrail(touch.clientX, touch.clientY);
-            // Start zoom timer (hold 400ms = zoom/aim mode)
+            // Start zoom timer (hold 400ms = zoom/aim mode for RANGED only)
             this._combatZoomTimer = setTimeout(() => {
               if (this.combatTouch.id !== null) {
-                this.isZooming = true;
+                // Check if the hand being held has a ranged item
+                const w = window.innerWidth;
+                const heldHand = this.combatTouch.startX < w * 0.4 ? 'left' : 'right';
+                const engine = this.camera.parent?.parent; // traverse up to find engine
+                // Simple: always allow aim mode, Engine will determine if it's zoom or strong attack
                 this._combatIsAiming = true;
-                this._aimStartY = touch.clientY;
+                this._aimStartY = this.combatTouch.startY;
+                this._aimHand = heldHand;
                 this.drawStrength = 0;
+                // Only zoom FOV if we detect ranged (check via callback if available)
+                if (this._isHandRanged && this._isHandRanged(heldHand)) {
+                  this.isZooming = true;
+                }
               }
             }, 400);
           }
@@ -398,9 +407,11 @@ export class PlayerController {
     const deg = ((angle * 180 / Math.PI) + 360) % 360;
 
     if (subZone === 'weapon') {
+      // Right-side slot: cycle right hand items
       if ((deg >= 315 || deg < 45)) { if (this.onWeaponCycle) this.onWeaponCycle(1); }
       else if (deg >= 135 && deg < 225) { if (this.onWeaponCycle) this.onWeaponCycle(-1); }
     } else if (subZone === 'spell') {
+      // Left-side slot: cycle left hand items
       if ((deg >= 315 || deg < 45)) { if (this.onSpellCycle) this.onSpellCycle(1); }
       else if (deg >= 135 && deg < 225) { if (this.onSpellCycle) this.onSpellCycle(-1); }
     } else {
