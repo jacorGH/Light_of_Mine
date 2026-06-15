@@ -320,17 +320,21 @@ export class PlayerController {
     const dist = Math.sqrt(dx * dx + dy * dy);
     const elapsed = performance.now() - this.combatTouch.startTime;
 
+    // ─── HAND DETECTION: which side of screen = which hand ─────
+    // Left 40% = left hand, Right 40% = right hand, Center 20% = both
+    const w = window.innerWidth;
+    const touchX = this.combatTouch.startX;
+    const hand = touchX < w * 0.4 ? 'left' : touchX > w * 0.6 ? 'right' : 'both';
+
     if (dist < 12) {
-      // Tap = jab/thrust
       if (this.onCombatGesture) {
-        this.onCombatGesture({ type: 'thrust', direction: 'center', label: 'Thrust', power: 0.5 });
+        this.onCombatGesture({ type: 'thrust', direction: 'center', label: '•', power: 0.5, hand });
       }
-      this.showCombatLabel('Thrust');
+      this.showCombatLabel('•');
       return;
     }
 
-    // Determine swipe direction (screen-space = attack direction)
-    const angle = Math.atan2(-dy, dx); // -dy so up = positive
+    const angle = Math.atan2(-dy, dx);
     const deg = ((angle * 180 / Math.PI) + 360) % 360;
     const speed = dist / Math.max(elapsed, 1);
     const power = Math.min(1, speed / 1.5);
@@ -358,7 +362,7 @@ export class PlayerController {
     this.showCombatLabel(label);
 
     if (this.onCombatGesture) {
-      this.onCombatGesture({ type, direction, label, power });
+      this.onCombatGesture({ type, direction, label, power, hand });
     }
   }
 

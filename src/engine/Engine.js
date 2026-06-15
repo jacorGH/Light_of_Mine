@@ -180,11 +180,38 @@ export class Engine {
     // ─── PLAYER CONTROLLER CALLBACKS → EVENTS ─────────────────────
     this.player.onCombatGesture = (gesture) => {
       if (gesture.type === 'block') return;
-      // Hold+release (ranged_release) = cast spell. Otherwise = weapon attack.
+
+      const hand = gesture.hand || 'right';
+      const wpn = this.weaponSystem;
+      const isTwoHanded = wpn.currentWeapon.twoHanded || wpn.currentWeapon.id === 'bow';
+
       if (gesture.type === 'ranged_release') {
-        events.emit('player:cast', gesture);
-      } else {
+        // Hold+release always casts spell (unless two-handed weapon equipped)
+        if (isTwoHanded) {
+          events.emit('player:attack', gesture);
+        } else {
+          events.emit('player:cast', gesture);
+        }
+      } else if (isTwoHanded) {
+        // Two-handed: any touch = weapon attack
         events.emit('player:attack', gesture);
+      } else {
+        // Dual-wield: hand determines what fires
+        // Dominant hand = weapon, off-hand = spell
+        // (e.g., right-handed: right side = weapon, left side = spell)
+        const dominantSide = wpn.dominantHand; // 'right' or 'left'
+        const isWeaponHand = (hand === dominantSide) || (hand === 'both');
+        const isSpellHand = (hand !== dominantSide) || (hand === 'both');
+
+        if (hand === 'both') {
+          // Center swipe = both fire (future: combo/blend)
+          events.emit('player:attack', gesture);
+          events.emit('player:cast', gesture);
+        } else if (isWeaponHand) {
+          events.emit('player:attack', gesture);
+        } else if (isSpellHand) {
+          events.emit('player:cast', gesture);
+        }
       }
     };
 

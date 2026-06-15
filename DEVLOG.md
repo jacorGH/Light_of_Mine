@@ -171,6 +171,67 @@ Player spawns at (32, 2, 32) in cell (0,0) — Southern Shore.
 
 ---
 
+### Session 3 — June 15, 2026
+
+**Status:** Phase 1 core loop complete + refining combat UX
+
+**What was built this session:**
+- EventBus pub/sub system (decoupled all systems)
+- PlayerStats (HP/Stamina/Magicka + regen + leveling + HUD bars)
+- EnemySystem (7 types, AI states, trigger spawning, death + loot)
+- InteractionSystem (doors, NPCs, items, proximity prompts)
+- DialogueSystem + typewriter UI (3 NPCs with branching trees)
+- QuestSystem (kill/collect/talk/explore objectives, 3 quests)
+- SaveSystem (localStorage, auto-save, F5/F9)
+- SkySystem (day/night cycle, 8 lighting presets, sun arc)
+- WaterSystem (custom ocean shader, waves, reflections)
+- RadialMenu redesigned as connected ring with tumble animation
+- MapUI (minimap + full map with waypoints)
+- Dual quickslot system (weapon + spell independent slots)
+- Sneak system (reduced detection, crouched height)
+- Sprint toggle (Shift/double-tap)
+- Zoom/aim (right-click/hold combat zone)
+- Island terrain falloff (beaches slope to ocean)
+- Tidal Grotto interior + village tavern interior
+- Collision detection for solid objects
+- NPC terrain placement fix
+- Complete SCHEMA.md content authoring reference
+
+**Architecture Decisions:**
+- All systems communicate ONLY through EventBus
+- Weapons and spells are SEPARATE independent slots (Morrowind-style)
+- Normal swipe = physical weapon, hold+release = cast spell
+- Content is 100% JSON-driven (cells, interiors, dialogue, quests)
+- Mobile-first design with PC as bonus
+
+**Current Game State (what works):**
+- Walk around 9-cell island with seamless streaming
+- Fight 7 enemy types (crabs, wolves, spiders, skeletons, bog creatures)
+- Use sword/fist/bow for physical attacks
+- Cast fireball/icicle/heal as spells
+- Talk to NPCs, accept quests, track progress
+- Enter interiors (tavern, grotto)
+- Day/night cycle with atmospheric lighting
+- Ocean surrounding the island
+- Save/load game state
+- Minimap + full map with waypoints
+- Radial pause menu for inventory/equipment/settings
+
+**What's being worked on NEXT:**
+- Hand-based attack origin (left side touch = left hand, right = right hand)
+- Two-handed weapons taking both slots
+- Elemental blending (spell + weapon = combo attack)
+- Weapon durability for mismatched elemental combos
+- Visual indicators showing what's equipped in each hand
+
+**Open Design Questions:**
+- How does durability work? (Does it reduce per hit? Per combo? Repairable?)
+- Should elemental blending be discoverable or taught?
+- What determines "compatible" elements? (Fire sword = bonus, Ice sword = no penalty?)
+- Should the player see both hands' viewmodels simultaneously?
+
+---
+
 *To add a new session, copy the template below:*
 
 ```

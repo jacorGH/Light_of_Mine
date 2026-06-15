@@ -22,9 +22,9 @@ export class WeaponSystem {
 
     // ─── SEPARATE WEAPON AND SPELL LISTS ──────────────────────────
     this.physicalWeapons = [
-      { id: 'fist', name: 'Fist', type: 'melee', range: 1.5, damage: 5, cooldown: 0.25 },
-      { id: 'sword', name: 'Iron Sword', type: 'melee', range: 2.8, damage: 15, cooldown: 0.4 },
-      { id: 'bow', name: 'Bow & Arrow', type: 'projectile', range: 50, damage: 12, cooldown: 0.5 },
+      { id: 'fist', name: 'Fist', type: 'melee', range: 1.5, damage: 5, cooldown: 0.25, twoHanded: false },
+      { id: 'sword', name: 'Iron Sword', type: 'melee', range: 2.8, damage: 15, cooldown: 0.4, twoHanded: false },
+      { id: 'bow', name: 'Bow & Arrow', type: 'projectile', range: 50, damage: 12, cooldown: 0.5, twoHanded: true },
     ];
 
     this.spells = [
@@ -128,18 +128,42 @@ export class WeaponSystem {
   // ─── VIEWMODEL ──────────────────────────────────────────────────
 
   showActiveViewmodel() {
-    const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
-    const item = this.activeItem;
-    const isTwoHanded = item.id === 'bow';
-    const xOffset = isTwoHanded ? handOffset * 0.4 : handOffset;
+    const rightOffset = 0.22;
+    const leftOffset = -0.22;
+    const weaponSide = this.dominantHand === 'right' ? rightOffset : leftOffset;
+    const spellSide = this.dominantHand === 'right' ? leftOffset : rightOffset;
 
     Object.values(this.weaponMeshes).forEach((m) => { m.visible = false; });
-    const mesh = this.weaponMeshes[item.id];
-    if (mesh) {
-      mesh.visible = true;
-      mesh.rotation.set(0, 0, 0);
-      mesh.position.set(xOffset, -0.3, -0.6);
+
+    const weapon = this.currentWeapon;
+    const spell = this.currentSpell;
+
+    if (weapon.twoHanded) {
+      // Two-handed: show only weapon, centered
+      const mesh = this.weaponMeshes[weapon.id];
+      if (mesh) {
+        mesh.visible = true;
+        mesh.position.set(0, -0.3, -0.6);
+        mesh.rotation.set(0, 0, 0);
+      }
+    } else {
+      // Dual-wield: show weapon on dominant side, spell on off-hand side
+      const wMesh = this.weaponMeshes[weapon.id];
+      const sMesh = this.weaponMeshes[spell.id];
+
+      if (wMesh) {
+        wMesh.visible = true;
+        wMesh.position.set(weaponSide, -0.3, -0.6);
+        wMesh.rotation.set(0, 0, 0);
+      }
+      if (sMesh && sMesh !== wMesh) {
+        sMesh.visible = true;
+        sMesh.position.set(spellSide, -0.35, -0.65);
+        sMesh.rotation.set(0, 0, 0);
+        sMesh.scale.set(0.8, 0.8, 0.8); // slightly smaller off-hand
+      }
     }
+
     this.updateHUD();
   }
 
@@ -290,19 +314,36 @@ export class WeaponSystem {
     const s = this.currentSpell;
     const wIcon = { fist: '👊', sword: '⚔', bow: '🏹' }[w.id] || '⚔';
     const sIcon = { fireball: '🔥', icicle: '❄', heal: '💚' }[s.id] || '✨';
-    const wActive = this.activeSlot === 'weapon' ? 'border-color:rgba(255,200,100,0.8)' : 'border-color:rgba(255,255,255,0.2)';
-    const sActive = this.activeSlot === 'spell' ? 'border-color:rgba(100,200,255,0.8)' : 'border-color:rgba(255,255,255,0.2)';
 
-    this.weaponHUD.innerHTML = `
-      <div style="text-align:center;padding:4px 8px;border:1.5px solid;border-radius:6px;background:rgba(0,0,0,0.5);${wActive}">
-        <div style="font-size:18px">${wIcon}</div>
-        <div style="color:rgba(255,255,255,0.6);margin-top:2px">${w.name}</div>
-      </div>
-      <div style="text-align:center;padding:4px 8px;border:1.5px solid;border-radius:6px;background:rgba(0,0,0,0.5);${sActive}">
-        <div style="font-size:18px">${sIcon}</div>
-        <div style="color:rgba(255,255,255,0.6);margin-top:2px">${s.name}</div>
-      </div>
-    `;
+    // Position HUD icons on the side they're equipped to
+    const isRightHanded = this.dominantHand === 'right';
+
+    if (w.twoHanded) {
+      // Two-handed: single centered slot
+      this.weaponHUD.innerHTML = `
+        <div style="text-align:center;padding:4px 10px;border:1.5px solid rgba(255,200,100,0.7);border-radius:6px;background:rgba(0,0,0,0.5)">
+          <div style="font-size:18px">${wIcon}</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:8px;margin-top:2px">${w.name} (2H)</div>
+        </div>
+      `;
+    } else {
+      // Dual: weapon on dominant side, spell on off-hand side
+      const weaponEl = `<div style="text-align:center;padding:4px 8px;border:1.5px solid rgba(255,200,100,0.6);border-radius:6px;background:rgba(0,0,0,0.5)">
+        <div style="font-size:16px">${wIcon}</div>
+        <div style="color:rgba(255,200,100,0.6);font-size:8px;margin-top:1px">${w.name}</div>
+      </div>`;
+      const spellEl = `<div style="text-align:center;padding:4px 8px;border:1.5px solid rgba(100,180,255,0.6);border-radius:6px;background:rgba(0,0,0,0.5)">
+        <div style="font-size:16px">${sIcon}</div>
+        <div style="color:rgba(100,180,255,0.6);font-size:8px;margin-top:1px">${s.name}</div>
+      </div>`;
+
+      // Order: dominant side first (visually matches hand position on screen)
+      if (isRightHanded) {
+        this.weaponHUD.innerHTML = spellEl + weaponEl; // left=spell, right=weapon
+      } else {
+        this.weaponHUD.innerHTML = weaponEl + spellEl; // left=weapon, right=spell
+      }
+    }
   }
 
   // ─── WEAPON MESHES ──────────────────────────────────────────────
@@ -380,13 +421,14 @@ export class WeaponSystem {
     const mesh = this.weaponMeshes[item.id];
     const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
 
-    // Idle bob
-    if (mesh && !this.isAttacking) {
+    // Idle bob — animate ALL visible meshes
+    if (!this.isAttacking) {
       const t = performance.now() * 0.001;
-      mesh.position.x = handOffset;
-      mesh.position.y = -0.3 + Math.sin(t * 2) * 0.008;
-      mesh.position.z = -0.6;
-      mesh.rotation.set(0, 0, Math.sin(t * 1.5) * 0.015);
+      Object.values(this.weaponMeshes).forEach((m) => {
+        if (!m.visible) return;
+        m.position.y = m.position.y * 0.95 + (-0.3 + Math.sin(t * 2) * 0.006) * 0.05;
+        m.rotation.z = Math.sin(t * 1.5) * 0.012;
+      });
     }
 
     // Attack animation
