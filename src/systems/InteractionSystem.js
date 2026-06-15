@@ -25,7 +25,7 @@ export class InteractionSystem {
     this.camera = engine.camera;
 
     // Interaction range
-    this.interactRange = 3.0;
+    this.interactRange = 4.0;
 
     // Current nearby interactable (if any)
     this.currentTarget = null;
@@ -40,8 +40,15 @@ export class InteractionSystem {
     // Input
     this.setupInput();
 
-    // Listen for cell changes
+    // Listen for cell changes AND interior transitions
     events.on('world:cells_changed', () => { this.cacheDirty = true; });
+    events.on('world:enter_interior', () => {
+      // Delay cache refresh to let interior load
+      setTimeout(() => { this.cacheDirty = true; }, 200);
+    });
+    events.on('world:exit_interior', () => {
+      setTimeout(() => { this.cacheDirty = true; }, 200);
+    });
   }
 
   // ─── INPUT ──────────────────────────────────────────────────────
