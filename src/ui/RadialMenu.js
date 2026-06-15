@@ -388,12 +388,18 @@ export class RadialMenu {
         }
         return items.length ? items : [{ id: 'empty', name: 'Empty', icon: '—', label: 'No items' }];
       }
-      case 'spells':
-        return [
-          { id: 'fireball', name: 'Fireball', icon: '🔥', label: 'Fireball' },
-          { id: 'icicle', name: 'Icicle', icon: '❄', label: 'Icicle' },
-          { id: 'heal', name: 'Heal', icon: '💚', label: 'Heal' },
-        ];
+      case 'spells': {
+        // Pull spell-type and projectile-type weapons from weapon system
+        const spells = [];
+        if (wpn) {
+          for (const w of wpn.weapons) {
+            if (w.type === 'projectile' || w.type === 'spell') {
+              spells.push({ id: w.id, name: w.name, icon: this.getWeaponIcon(w.id), label: w.name, data: w });
+            }
+          }
+        }
+        return spells.length ? spells : [{ id: 'empty', name: 'No Spells', icon: '—', label: 'No spells known' }];
+      }
       case 'equipment':
         return [
           { id: 'slot_weapon', name: 'Weapon', icon: '⚔', label: wpn?.currentWeapon?.name || 'None' },
@@ -424,6 +430,6 @@ export class RadialMenu {
   }
 
   getWeaponIcon(id) {
-    return { fist: '👊', sword: '⚔', fireball: '🔥', icicle: '❄', bow: '🏹' }[id] || '⚔';
+    return { fist: '👊', sword: '⚔', fireball: '🔥', icicle: '❄', bow: '🏹', heal: '💚' }[id] || '⚔';
   }
 }

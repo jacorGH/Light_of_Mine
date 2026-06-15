@@ -93,15 +93,31 @@ export class Engine {
     events.on('player:attack', (data) => {
       if (this.paused) return;
 
-      // Enrich attack data with current weapon info for stats system
+      // Enrich attack data with current weapon info
       const weapon = this.weaponSystem.currentWeapon;
       data.weaponType = weapon.type;
-      data.spell = (weapon.type === 'projectile') ? weapon.id : null;
+      data.spell = (weapon.type === 'projectile' || weapon.type === 'spell') ? weapon.id : null;
+
+      // Handle heal separately (self-heal, no attack)
+      if (weapon.id === 'heal') {
+        if (this.playerStats.magicka >= 20) {
+          this.playerStats.drainMagicka(20);
+          this.playerStats.heal(30);
+          this.weaponSystem.attack(data); // play cast animation
+        }
+        return;
+      }
 
       // Check if player has enough stamina/magicka
       if (!this.playerStats.canAttack(data)) {
-        return; // Can't attack — not enough resources
+        return;
       }
+
+      // Drain resources BEFORE attack (fixes event order issue)
+      const staminaCost = weapon.type === 'melee' ? 8 : 5;
+      this.playerStats.drainStamina(staminaCost);
+      if (data.spell && weapon.id === 'fireball') this.playerStats.drainMagicka(15);
+      if (data.spell && weapon.id === 'icicle') this.playerStats.drainMagicka(12);
 
       this.weaponSystem.attack(data);
 
@@ -185,6 +201,11 @@ export class Engine {
     // Long-press action button → open radial menu
     this.player.onMenuOpen = () => {
       this.radialMenu.open();
+    };
+
+    // Sneak state change → affects enemy detection
+    this.player.onSneakChanged = (isSneaking) => {
+      events.emit('player:sneak_changed', { sneaking: isSneaking });
     };
   }
 

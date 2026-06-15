@@ -36,6 +36,11 @@ export class PlayerController {
     this.jumpForce = 8;
     this.gravity = -20;
 
+    // Sneak/crouch
+    this.isSneaking = false;
+    this.sneakSpeed = 2.0;
+    this.sneakHeight = 1.0; // crouched eye height (vs 1.7 standing)
+
     // Mouse look
     this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
     this.isLocked = false;
@@ -47,6 +52,7 @@ export class PlayerController {
     this.onCombatGesture = null;
     this.onWeaponCycle = null;
     this.onMenuOpen = null; // long-press action button opens radial menu
+    this.onSneakChanged = null; // notify systems when sneak toggles
 
     // ─── PC CONTROLS ───────────────────────────────────────────────
     if (!this.isMobile) {
@@ -108,6 +114,9 @@ export class PlayerController {
       case 'ShiftLeft': case 'ShiftRight':
         this.isSprinting = !this.isSprinting;
         this.speed = this.isSprinting ? this.sprintSpeed : this.walkSpeed;
+        break;
+      case 'ControlLeft': case 'ControlRight':
+        this.toggleSneak();
         break;
       case 'Space':
         event.preventDefault();
@@ -185,6 +194,12 @@ export class PlayerController {
             this.lookTouch.id = touch.identifier;
             this.lookTouch.currentX = touch.clientX;
             this.lookTouch.currentY = touch.clientY;
+            // Double-tap detection for sneak toggle
+            const lookNow = performance.now();
+            if (lookNow - (this._lastLookTapTime || 0) < 300) {
+              this.toggleSneak();
+            }
+            this._lastLookTapTime = lookNow;
           }
           break;
         case 'combat':
@@ -524,6 +539,23 @@ export class PlayerController {
     const hits = this.raycaster.intersectObjects(this.terrainMeshes, false);
     if (hits.length > 0) return hits[0].point.y;
     return this.groundHeight;
+  }
+
+  // ─── SNEAK ─────────────────────────────────────────────────────
+
+  toggleSneak() {
+    this.isSneaking = !this.isSneaking;
+    if (this.isSneaking) {
+      this.isSprinting = false;
+      this.speed = this.sneakSpeed;
+      this.playerHeight = this.sneakHeight;
+      if (this.isMobile) this.flashActionBtn('🦶 Sneak');
+    } else {
+      this.speed = this.walkSpeed;
+      this.playerHeight = 1.7;
+      if (this.isMobile) this.flashActionBtn('🚶 Stand');
+    }
+    if (this.onSneakChanged) this.onSneakChanged(this.isSneaking);
   }
 
   // ─── COLLISION DETECTION ────────────────────────────────────────

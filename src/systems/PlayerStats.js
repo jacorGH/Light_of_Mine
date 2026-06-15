@@ -86,7 +86,6 @@ export class PlayerStats {
     // --- Subscribe to events ---
     events.on('player:damaged', (data) => this.damage(data.amount), this);
     events.on('player:healed', (data) => this.heal(data.amount), this);
-    events.on('player:attack', (data) => this._handleAttack(data), this);
     events.on('player:sprint_tick', (data) => this._handleSprint(data), this);
   }
 

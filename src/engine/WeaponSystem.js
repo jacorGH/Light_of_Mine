@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { events } from './EventBus.js';
 
 /**
  * WeaponSystem — manages equipped weapon viewmodel (first-person hand/weapon visible on screen),
@@ -27,6 +28,7 @@ export class WeaponSystem {
       { id: 'fireball', name: 'Fireball', type: 'projectile', range: 40, damage: 25, color: '#ff4400', cooldown: 0.8 },
       { id: 'icicle', name: 'Icicle', type: 'projectile', range: 35, damage: 20, color: '#66ccff', cooldown: 0.6 },
       { id: 'bow', name: 'Bow & Arrow', type: 'projectile', range: 50, damage: 12, color: '#8b6914', cooldown: 0.5 },
+      { id: 'heal', name: 'Heal', type: 'spell', range: 0, damage: 0, color: '#44ff88', cooldown: 1.0 },
     ];
 
     this.currentWeaponIndex = 1; // Start with sword
@@ -190,6 +192,28 @@ export class WeaponSystem {
     arrowHead.rotation.x = Math.PI / 2;
     bow.add(arrowHead);
     this.weaponMeshes['bow'] = bow;
+
+    // ─── HEAL ──────────────────────────────────
+    const heal = new THREE.Group();
+    const healHand = hand.clone();
+    heal.add(healHand);
+    const healOrb = new THREE.Mesh(
+      new THREE.SphereGeometry(0.1, 8, 6),
+      new THREE.MeshStandardMaterial({ color: '#44ff88', emissive: '#22cc44', emissiveIntensity: 1.5, roughness: 0.2, transparent: true, opacity: 0.8 })
+    );
+    healOrb.position.set(0, 0.05, -0.15);
+    heal.add(healOrb);
+    // Healing particles (small orbiting spheres)
+    for (let i = 0; i < 4; i++) {
+      const p = new THREE.Mesh(
+        new THREE.SphereGeometry(0.02, 4, 3),
+        new THREE.MeshBasicMaterial({ color: '#88ffaa' })
+      );
+      const angle = (i / 4) * Math.PI * 2;
+      p.position.set(Math.cos(angle) * 0.08, 0.05 + Math.sin(angle) * 0.05, -0.15);
+      heal.add(p);
+    }
+    this.weaponMeshes['heal'] = heal;
 
     // Position viewmodels offset to dominant hand
     const handOffset = this.dominantHand === 'right' ? 0.22 : -0.22;
@@ -432,7 +456,29 @@ export class WeaponSystem {
         );
       }
 
-      if (proj.age >= proj.lifetime) {
+      // Check collision with enemies
+      let hit = false;
+      if (this.engine.enemySystem) {
+        const enemies = this.engine.enemySystem.enemies;
+        for (const enemy of enemies) {
+          if (enemy.dead) continue;
+          const dist = proj.mesh.position.distanceTo(enemy.mesh.position);
+          if (dist < 1.5) {
+            // Hit! Emit projectile hit event
+            events.emit('combat:projectile_hit', {
+              position: proj.mesh.position.clone(),
+              damage: proj.damage,
+            });
+            hit = true;
+            break;
+          }
+        }
+      }
+
+      // Check if hit ground (below sea level)
+      if (proj.mesh.position.y < -2) hit = true;
+
+      if (hit || proj.age >= proj.lifetime) {
         this.scene.remove(proj.mesh);
         if (proj.light) this.scene.remove(proj.light);
         proj.mesh.geometry.dispose();

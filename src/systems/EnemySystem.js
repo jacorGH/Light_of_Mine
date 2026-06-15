@@ -105,11 +105,13 @@ export class EnemySystem {
 
     this.enemies = [];
     this.nextId = 1;
+    this.playerSneaking = false;
 
     // Subscribe to events
     events.on('combat:slash', (data) => this.handlePlayerAttack(data));
     events.on('combat:projectile_hit', (data) => this.handleProjectileHit(data));
     events.on('world:cells_changed', () => this.checkTriggers());
+    events.on('player:sneak_changed', (data) => { this.playerSneaking = data.sneaking; });
 
     // Initial trigger check after a short delay (scene needs to be populated)
     setTimeout(() => this.checkTriggers(), 100);
@@ -377,7 +379,9 @@ export class EnemySystem {
       // ── STATE MACHINE ──
       switch (enemy.state) {
         case 'idle':
-          if (dist <= enemy.detectRange) {
+          // Sneaking reduces detection range by 60%
+          const effectiveDetectRange = this.playerSneaking ? enemy.detectRange * 0.4 : enemy.detectRange;
+          if (dist <= effectiveDetectRange) {
             enemy.state = 'alert';
             enemy.stateTimer = 0.5;
           }
