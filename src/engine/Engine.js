@@ -14,6 +14,7 @@ import { DialogueSystem } from '../systems/DialogueSystem.js';
 import { QuestSystem } from '../systems/QuestSystem.js';
 import { SaveSystem } from '../systems/SaveSystem.js';
 import { SkySystem } from '../systems/SkySystem.js';
+import { WaterSystem } from '../systems/WaterSystem.js';
 
 /**
  * Core engine — manages renderer, camera, scene, game loop, and system orchestration.
@@ -72,6 +73,7 @@ export class Engine {
     this.questSystem = new QuestSystem(this);
     this.saveSystem = new SaveSystem(this);
     this.skySystem = new SkySystem(this);
+    this.waterSystem = new WaterSystem(this);
     this.radialMenu = new RadialMenu(this);
     this.mapUI = new MapUI(this);
 
@@ -230,6 +232,7 @@ export class Engine {
     this.enemySystem.update(delta);
     this.interactionSystem.update();
     this.skySystem.update(delta);
+    this.waterSystem.update(delta);
     this.mapUI.update();
     this.renderer.render(this.scene, this.camera);
   }

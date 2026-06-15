@@ -330,6 +330,9 @@ export class EnemySystem {
    * @param {number} delta - Time since last frame in seconds
    */
   update(delta) {
+    // Check triggers every frame (cheap: just distance checks)
+    this.checkTriggers();
+
     const now = performance.now() / 1000;
     const playerPos = this.camera.position;
 

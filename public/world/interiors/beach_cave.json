@@ -1,0 +1,56 @@
+{
+  "id": "beach_cave",
+  "name": "Tidal Grotto",
+  "environment": {
+    "ambientLight": { "color": "#2244aa", "intensity": 0.15 },
+    "pointLights": [
+      { "position": [0, 2.5, 0], "color": "#4488cc", "intensity": 0.4, "range": 8 },
+      { "position": [5, 1.5, -4], "color": "#22aaff", "intensity": 0.3, "range": 6 },
+      { "position": [-4, 1, 3], "color": "#66ccff", "intensity": 0.2, "range": 5 },
+      { "position": [3, 0.5, 4], "color": "#44ff88", "intensity": 0.3, "range": 4 }
+    ]
+  },
+  "geometry": {
+    "size": [16, 5, 14],
+    "floorColor": "#2a3a3a",
+    "wallColor": "#1a2a2a"
+  },
+  "spawn": {
+    "position": [0, 1, 6],
+    "rotation": [0, 0, 0]
+  },
+  "objects": [
+    { "asset": "rock_mossy_01", "position": [5, 0, -3], "rotation": [0, 45, 0], "scale": 1.5 },
+    { "asset": "rock_mossy_01", "position": [-5, 0, -4], "rotation": [0, 120, 0], "scale": 1.2 },
+    { "asset": "rock_mossy_01", "position": [3, 0, 3], "rotation": [0, 200, 0], "scale": 0.8 },
+    { "asset": "rock_coastal_01", "position": [-6, 0, 1], "rotation": [10, 30, 0], "scale": 1.0 },
+    { "asset": "rock_coastal_01", "position": [6, 0, -5], "rotation": [0, 160, 5], "scale": 1.3 },
+    { "asset": "mushroom_glowing", "position": [-3, 0, -2], "rotation": [0, 0, 0], "scale": 1.5 },
+    { "asset": "mushroom_glowing", "position": [4, 0, -5], "rotation": [0, 90, 0], "scale": 1.2 },
+    { "asset": "mushroom_glowing", "position": [-5, 0, 3], "rotation": [0, 180, 0], "scale": 1.0 },
+    { "asset": "swamp_water_01", "position": [0, -0.3, -2], "rotation": [0, 0, 0], "scale": 2.0 }
+  ],
+  "npcs": [],
+  "items": [
+    {
+      "id": "grotto_treasure_01",
+      "asset": "chest_ornate",
+      "position": [0, 0.3, -5],
+      "contents": ["pearl_necklace", "gold_30", "potion_health_minor"]
+    },
+    {
+      "id": "grotto_gem",
+      "asset": "item_gem",
+      "position": [5, 0.5, -4],
+      "contents": ["sapphire"]
+    }
+  ],
+  "exits": [
+    {
+      "id": "grotto_exit",
+      "position": [0, 0, 6.5],
+      "exitPosition": [58, 2, -16],
+      "label": "Exit to Beach"
+    }
+  ]
+}
