@@ -51,8 +51,9 @@ export class PlayerController {
     // Callbacks (set by Engine)
     this.onCombatGesture = null;
     this.onWeaponCycle = null;
-    this.onMenuOpen = null; // long-press action button opens radial menu
-    this.onSneakChanged = null; // notify systems when sneak toggles
+    this.onSpellCycle = null; // separate spell cycling
+    this.onMenuOpen = null;
+    this.onSneakChanged = null;
 
     // ─── PC CONTROLS ───────────────────────────────────────────────
     if (!this.isMobile) {
@@ -361,39 +362,50 @@ export class PlayerController {
     }
   }
 
-  // ─── ACTION WHEEL (bottom center) ──────────────────────────────
-  // Swipe up = jump, swipe left = prev weapon, swipe right = next weapon, tap = interact
+  // ─── ACTION ZONE (bottom center) ─────────────────────────────────
+  // Three sub-areas: [⚔ Weapon] [↑ Jump/Menu] [✨ Spell]
+  // Swipe left/right on weapon/spell = cycle. Tap center = jump. Hold center = menu.
 
   resolveAction(endX, endY) {
     const dx = endX - this.actionTouch.startX;
     const dy = endY - this.actionTouch.startY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
+    // Determine which sub-zone of action area was touched
+    const w = window.innerWidth;
+    const actionLeft = w * 0.30;
+    const actionRight = w * 0.70;
+    const thirdWidth = (actionRight - actionLeft) / 3;
+    const touchX = this.actionTouch.startX;
+
+    const subZone = touchX < (actionLeft + thirdWidth) ? 'weapon'
+                  : touchX > (actionRight - thirdWidth) ? 'spell'
+                  : 'center';
+
     if (dist < 15) {
-      // Tap = interact (future)
+      // Tap — no movement
+      if (subZone === 'center') {
+        if (this.isGrounded) { this.jumpVelocity = this.jumpForce; this.isGrounded = false; }
+      }
       return;
     }
 
     const angle = Math.atan2(-dy, dx);
     const deg = ((angle * 180 / Math.PI) + 360) % 360;
 
-    if (deg >= 45 && deg < 135) {
-      // Swipe up = jump
-      if (this.isGrounded) {
-        this.jumpVelocity = this.jumpForce;
-        this.isGrounded = false;
-        this.flashActionBtn('JUMP');
-      }
-    } else if (deg >= 135 && deg < 225) {
-      // Swipe left = prev weapon
-      if (this.onWeaponCycle) this.onWeaponCycle(-1);
-      this.flashActionBtn('◀ Prev');
-    } else if (deg >= 315 || deg < 45) {
-      // Swipe right = next weapon
-      if (this.onWeaponCycle) this.onWeaponCycle(1);
-      this.flashActionBtn('Next ▶');
+    if (subZone === 'weapon') {
+      if ((deg >= 315 || deg < 45)) { if (this.onWeaponCycle) this.onWeaponCycle(1); }
+      else if (deg >= 135 && deg < 225) { if (this.onWeaponCycle) this.onWeaponCycle(-1); }
+    } else if (subZone === 'spell') {
+      if ((deg >= 315 || deg < 45)) { if (this.onSpellCycle) this.onSpellCycle(1); }
+      else if (deg >= 135 && deg < 225) { if (this.onSpellCycle) this.onSpellCycle(-1); }
     } else {
-      // Swipe down = (reserved, maybe crouch later)
+      // Center: swipe up = jump, swipe down = sneak
+      if (deg >= 45 && deg < 135) {
+        if (this.isGrounded) { this.jumpVelocity = this.jumpForce; this.isGrounded = false; }
+      } else if (deg >= 225 && deg < 315) {
+        this.toggleSneak();
+      }
     }
   }
 
@@ -438,18 +450,47 @@ export class PlayerController {
     });
     document.body.appendChild(this.swipeTrail);
 
-    // Action button area indicator — BIGGER for easier touch
+    // Action bar — dual quickslot layout: [⚔ Wpn] [↑] [✨ Spell]
     this.actionBtn = document.createElement('div');
     Object.assign(this.actionBtn.style, {
-      position: 'fixed', bottom: '3%', left: '50%', transform: 'translateX(-50%)',
-      width: '100px', height: '54px', borderRadius: '27px',
-      border: '1.5px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.06)',
+      position: 'fixed', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
+      width: '180px', height: '48px', borderRadius: '24px',
+      border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.4)',
       zIndex: '999', pointerEvents: 'none', display: 'flex',
-      alignItems: 'center', justifyContent: 'center',
-      color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '10px',
-      flexDirection: 'column', gap: '2px', lineHeight: '1.2',
+      alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 6px',
+      fontFamily: 'monospace', fontSize: '9px',
     });
-    this.actionBtn.innerHTML = '↑ Jump ←→ Wpn<br><span style="font-size:8px;opacity:0.5">Hold: Menu</span>';
+    // Weapon slot (left)
+    const wpnSlot = document.createElement('div');
+    Object.assign(wpnSlot.style, {
+      width: '50px', height: '38px', borderRadius: '8px',
+      border: '1px solid rgba(255,200,100,0.4)', background: 'rgba(255,200,100,0.05)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      color: 'rgba(255,200,100,0.7)',
+    });
+    wpnSlot.innerHTML = '<span style="font-size:16px">⚔</span><span style="font-size:7px">←→</span>';
+    this.actionBtn.appendChild(wpnSlot);
+    // Center (jump)
+    const jumpSlot = document.createElement('div');
+    Object.assign(jumpSlot.style, {
+      width: '40px', height: '38px', borderRadius: '50%',
+      border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.03)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'rgba(255,255,255,0.5)', fontSize: '14px',
+    });
+    jumpSlot.textContent = '↑';
+    this.actionBtn.appendChild(jumpSlot);
+    // Spell slot (right)
+    const spellSlot = document.createElement('div');
+    Object.assign(spellSlot.style, {
+      width: '50px', height: '38px', borderRadius: '8px',
+      border: '1px solid rgba(100,200,255,0.4)', background: 'rgba(100,200,255,0.05)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      color: 'rgba(100,200,255,0.7)',
+    });
+    spellSlot.innerHTML = '<span style="font-size:16px">✨</span><span style="font-size:7px">←→</span>';
+    this.actionBtn.appendChild(spellSlot);
     document.body.appendChild(this.actionBtn);
 
     // Zone divider line (subtle)

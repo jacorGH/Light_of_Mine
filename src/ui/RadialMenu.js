@@ -374,7 +374,8 @@ export class RadialMenu {
 
     switch (categoryId) {
       case 'weapons':
-        return (wpn?.weapons || []).map(w => ({
+        // Physical weapons only (fist, sword, bow)
+        return (wpn?.physicalWeapons || []).map(w => ({
           id: w.id, name: w.name, icon: this.getWeaponIcon(w.id), label: w.name, data: w,
         }));
       case 'items': {
@@ -388,21 +389,15 @@ export class RadialMenu {
         }
         return items.length ? items : [{ id: 'empty', name: 'Empty', icon: '—', label: 'No items' }];
       }
-      case 'spells': {
-        // Pull spell-type and projectile-type weapons from weapon system
-        const spells = [];
-        if (wpn) {
-          for (const w of wpn.weapons) {
-            if (w.type === 'projectile' || w.type === 'spell') {
-              spells.push({ id: w.id, name: w.name, icon: this.getWeaponIcon(w.id), label: w.name, data: w });
-            }
-          }
-        }
-        return spells.length ? spells : [{ id: 'empty', name: 'No Spells', icon: '—', label: 'No spells known' }];
-      }
+      case 'spells':
+        // Magic spells only (fireball, icicle, heal)
+        return (wpn?.spells || []).map(s => ({
+          id: s.id, name: s.name, icon: this.getWeaponIcon(s.id), label: s.name, data: s,
+        }));
       case 'equipment':
         return [
           { id: 'slot_weapon', name: 'Weapon', icon: '⚔', label: wpn?.currentWeapon?.name || 'None' },
+          { id: 'slot_spell', name: 'Spell', icon: '✨', label: wpn?.currentSpell?.name || 'None' },
           { id: 'slot_armor', name: 'Armor', icon: '🛡', label: 'None' },
           { id: 'slot_ring', name: 'Ring', icon: '💍', label: 'None' },
         ];

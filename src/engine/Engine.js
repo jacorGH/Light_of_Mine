@@ -89,121 +89,117 @@ export class Engine {
    * This is the ONLY place systems connect to each other.
    */
   setupEvents() {
-    // Player attack → weapon animation + grass cutting + stats drain
+    // ─── PHYSICAL WEAPON ATTACK (normal swipe) ────────────────────
     events.on('player:attack', (data) => {
       if (this.paused) return;
 
-      // Enrich attack data with current weapon info
       const weapon = this.weaponSystem.currentWeapon;
       data.weaponType = weapon.type;
-      data.spell = (weapon.type === 'projectile' || weapon.type === 'spell') ? weapon.id : null;
 
-      // Handle heal separately (self-heal, no attack)
-      if (weapon.id === 'heal') {
-        if (this.playerStats.magicka >= 20) {
-          this.playerStats.drainMagicka(20);
-          this.playerStats.heal(30);
-          this.weaponSystem.attack(data); // play cast animation
-        }
-        return;
-      }
-
-      // Check if player has enough stamina/magicka
-      if (!this.playerStats.canAttack(data)) {
-        return;
-      }
-
-      // Drain resources BEFORE attack (fixes event order issue)
+      // Stamina check
       const staminaCost = weapon.type === 'melee' ? 8 : 5;
+      if (this.playerStats.stamina < staminaCost) return;
       this.playerStats.drainStamina(staminaCost);
-      if (data.spell && weapon.id === 'fireball') this.playerStats.drainMagicka(15);
-      if (data.spell && weapon.id === 'icicle') this.playerStats.drainMagicka(12);
 
-      this.weaponSystem.attack(data);
+      this.weaponSystem.attackWeapon(data);
 
       if (weapon.type === 'melee') {
         events.emit('combat:slash', data);
       }
     });
 
-    // Combat slash → grass cutter responds
+    // ─── SPELL CAST (hold+release in combat zone) ─────────────────
+    events.on('player:cast', (data) => {
+      if (this.paused) return;
+
+      const spell = this.weaponSystem.currentSpell;
+
+      // Heal: special case
+      if (spell.id === 'heal') {
+        if (this.playerStats.magicka >= spell.magickaCost) {
+          this.playerStats.drainMagicka(spell.magickaCost);
+          this.playerStats.heal(30);
+          this.weaponSystem.castSpell(data);
+        }
+        return;
+      }
+
+      // Magicka check for offensive spells
+      if (this.playerStats.magicka < (spell.magickaCost || 0)) return;
+      this.playerStats.drainMagicka(spell.magickaCost || 0);
+
+      // Small stamina cost for casting too
+      this.playerStats.drainStamina(3);
+
+      this.weaponSystem.castSpell(data);
+    });
+
+    // ─── COMBAT SLASH → grass cutter ──────────────────────────────
     events.on('combat:slash', () => {
       if (this.paused) return;
       this.grassCutter.slash();
     });
 
-    // Weapon cycling
+    // ─── WEAPON CYCLING (physical) ────────────────────────────────
     events.on('player:weapon_cycle', (data) => {
       if (this.paused) return;
       if (data.direction > 0) this.weaponSystem.nextWeapon();
       else this.weaponSystem.prevWeapon();
     });
 
-    // Item collected → inventory
-    events.on('item:collected', (data) => {
-      this.inventory.addItem(data);
+    // ─── SPELL CYCLING (magic) ────────────────────────────────────
+    events.on('player:spell_cycle', (data) => {
+      if (this.paused) return;
+      if (data.direction > 0) this.weaponSystem.nextSpell();
+      else this.weaponSystem.prevSpell();
     });
 
-    // World cells changed → invalidate caches
-    events.on('world:cells_changed', () => {
-      this.grassCutter.invalidateGrassCache();
-    });
+    // ─── ITEM / WORLD EVENTS ──────────────────────────────────────
+    events.on('item:collected', (data) => { this.inventory.addItem(data); });
+    events.on('world:cells_changed', () => { this.grassCutter.invalidateGrassCache(); });
+    events.on('player:xp', (data) => { this.playerStats.addXP(data.amount); });
 
-    // Game pause/resume
+    // ─── GAME STATE ───────────────────────────────────────────────
     events.on('game:paused', () => { this.paused = true; });
     events.on('game:resumed', () => { this.paused = false; });
 
-    // XP from enemy kills → player stats
-    events.on('player:xp', (data) => {
-      this.playerStats.addXP(data.amount);
-    });
-
-    // Radial menu: equip weapon from menu selection
+    // ─── RADIAL MENU: equip from menu ─────────────────────────────
     events.on('player:equip_weapon', (data) => {
-      const idx = this.weaponSystem.weapons.findIndex(w => w.id === data.id);
-      if (idx !== -1) {
-        this.weaponSystem.currentWeaponIndex = idx;
-        this.weaponSystem.showCurrentWeapon();
-      }
+      this.weaponSystem.equipWeaponById(data.id);
     });
-
-    // Radial menu: equip spell (spells are in the weapons array too)
     events.on('player:equip_spell', (data) => {
-      const idx = this.weaponSystem.weapons.findIndex(w => w.id === data.id);
-      if (idx !== -1) {
-        this.weaponSystem.currentWeaponIndex = idx;
-        this.weaponSystem.showCurrentWeapon();
-      }
+      this.weaponSystem.equipSpellById(data.id);
     });
 
-    // Radial menu: settings (handedness)
+    // ─── RADIAL MENU: settings ────────────────────────────────────
     events.on('menu:item_selected', (data) => {
-      if (data.id === 'hand_right') {
-        this.weaponSystem.dominantHand = 'right';
-        this.weaponSystem.showCurrentWeapon();
-      } else if (data.id === 'hand_left') {
-        this.weaponSystem.dominantHand = 'left';
-        this.weaponSystem.showCurrentWeapon();
-      }
+      if (data.id === 'hand_right') { this.weaponSystem.dominantHand = 'right'; this.weaponSystem.showActiveViewmodel(); }
+      else if (data.id === 'hand_left') { this.weaponSystem.dominantHand = 'left'; this.weaponSystem.showActiveViewmodel(); }
     });
 
     // ─── PLAYER CONTROLLER CALLBACKS → EVENTS ─────────────────────
-    // Bridge the PlayerController callbacks into the event bus
     this.player.onCombatGesture = (gesture) => {
       if (gesture.type === 'block') return;
-      events.emit('player:attack', gesture);
+      // Hold+release (ranged_release) = cast spell. Otherwise = weapon attack.
+      if (gesture.type === 'ranged_release') {
+        events.emit('player:cast', gesture);
+      } else {
+        events.emit('player:attack', gesture);
+      }
     };
 
     this.player.onWeaponCycle = (direction) => {
       events.emit('player:weapon_cycle', { direction });
     };
 
-    // Long-press action button → open radial menu
+    this.player.onSpellCycle = (direction) => {
+      events.emit('player:spell_cycle', { direction });
+    };
+
     this.player.onMenuOpen = () => {
       this.radialMenu.open();
     };
 
-    // Sneak state change → affects enemy detection
     this.player.onSneakChanged = (isSneaking) => {
       events.emit('player:sneak_changed', { sneaking: isSneaking });
     };
