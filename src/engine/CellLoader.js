@@ -135,15 +135,31 @@ export class CellLoader {
    * Global terrain height function. Uses FIXED noise parameters regardless
    * of per-cell biome settings, so all cells produce identical heights at
    * shared edges. Per-cell settings only affect color/texture.
+   * 
+   * Includes island falloff — terrain slopes to sea level at world edges.
    */
   getTerrainHeight(worldX, worldZ) {
     const s = 0.06;
     const a = 4.0;
-    return (
+    const baseHeight =
       Math.sin(worldX * s) * Math.cos(worldZ * s) * a * 0.6 +
       Math.sin(worldX * s * 2.3 + 1.7) * Math.cos(worldZ * s * 1.9 + 0.8) * a * 0.3 +
-      Math.sin(worldX * s * 4.1 + 3.2) * Math.cos(worldZ * s * 3.7 + 2.1) * a * 0.1
-    );
+      Math.sin(worldX * s * 4.1 + 3.2) * Math.cos(worldZ * s * 3.7 + 2.1) * a * 0.1;
+
+    // Island falloff: smooth slope to sea level at edges
+    // Island center is approximately at worldX=0, worldZ=-64 (cell 0,-1)
+    const centerX = 0;
+    const centerZ = -64;
+    const dx = (worldX - centerX) / 110; // normalize to ~1 at island edge
+    const dz = (worldZ - centerZ) / 110;
+    const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+
+    // Smooth falloff: 1.0 in center, slopes to 0 at edge, then below sea level
+    const falloff = 1.0 - Math.pow(Math.max(0, Math.min(1, distFromCenter)), 2);
+    const seaLevel = -1.5;
+
+    // Blend between terrain height and sea level based on falloff
+    return seaLevel + (baseHeight - seaLevel + 2) * falloff;
   }
 
   buildTerrain(cellData, group) {

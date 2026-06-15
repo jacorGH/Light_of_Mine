@@ -123,11 +123,19 @@ export class EnemySystem {
    */
   getGroundHeight(wx, wz) {
     const s = 0.06, a = 4.0;
-    return (
+    const baseHeight =
       Math.sin(wx * s) * Math.cos(wz * s) * a * 0.6 +
       Math.sin(wx * s * 2.3 + 1.7) * Math.cos(wz * s * 1.9 + 0.8) * a * 0.3 +
-      Math.sin(wx * s * 4.1 + 3.2) * Math.cos(wz * s * 3.7 + 2.1) * a * 0.1
-    );
+      Math.sin(wx * s * 4.1 + 3.2) * Math.cos(wz * s * 3.7 + 2.1) * a * 0.1;
+
+    // Island falloff (must match CellLoader)
+    const centerX = 0, centerZ = -64;
+    const dx = (wx - centerX) / 110;
+    const dz = (wz - centerZ) / 110;
+    const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+    const falloff = 1.0 - Math.pow(Math.max(0, Math.min(1, distFromCenter)), 2);
+    const seaLevel = -1.5;
+    return seaLevel + (baseHeight - seaLevel + 2) * falloff;
   }
 
   // ─── TRIGGER DETECTION ────────────────────────────────────────────
