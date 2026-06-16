@@ -691,8 +691,10 @@ export class CellLoader {
   }
 
   buildInteriorGeometry(geom, group) {
-    // Simple box room for now
     const size = geom.size || [10, 4, 10];
+    // Store room size on group for boundary clamping
+    group.userData.roomSize = size;
+
     const floorGeo = new THREE.PlaneGeometry(size[0], size[2]);
     floorGeo.rotateX(-Math.PI / 2);
     const floorMat = new THREE.MeshStandardMaterial({

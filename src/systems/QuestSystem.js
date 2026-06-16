@@ -17,6 +17,7 @@ export class QuestSystem {
     this.engine = engine;
     this.quests = new Map();          // active quests by id
     this.completedQuests = new Set(); // completed quest ids
+    this.visitedInteriors = new Set(); // track all interiors player has entered
 
     // Create the quest UI
     this.ui = new QuestUI(engine);
@@ -39,6 +40,13 @@ export class QuestSystem {
 
     this.quests.set(questId, quest);
     events.emit('quest:added', { quest });
+
+    // Retroactively check if any explore objectives are already satisfied
+    for (const obj of quest.objectives) {
+      if (obj.type === 'explore' && this.visitedInteriors.has(obj.target) && obj.current < obj.count) {
+        this.updateObjective(questId, obj.id, 1);
+      }
+    }
   }
 
   onEnemyKilled({ asset }) {
@@ -72,6 +80,9 @@ export class QuestSystem {
   }
 
   onEnterInterior({ interiorId }) {
+    // Track that this interior has been visited (for retroactive quest completion)
+    this.visitedInteriors.add(interiorId);
+
     for (const [questId, quest] of this.quests) {
       for (const obj of quest.objectives) {
         if (obj.type === 'explore' && obj.target === interiorId && obj.current < obj.count) {
@@ -203,7 +214,8 @@ export class QuestSystem {
     }
     return {
       activeQuests,
-      completedQuests: Array.from(this.completedQuests)
+      completedQuests: Array.from(this.completedQuests),
+      visitedInteriors: Array.from(this.visitedInteriors)
     };
   }
 
@@ -214,6 +226,7 @@ export class QuestSystem {
   deserialize(data) {
     this.quests.clear();
     this.completedQuests.clear();
+    this.visitedInteriors.clear();
 
     if (data.activeQuests) {
       for (const [id, quest] of Object.entries(data.activeQuests)) {
@@ -224,6 +237,12 @@ export class QuestSystem {
     if (data.completedQuests) {
       for (const id of data.completedQuests) {
         this.completedQuests.add(id);
+      }
+    }
+
+    if (data.visitedInteriors) {
+      for (const id of data.visitedInteriors) {
+        this.visitedInteriors.add(id);
       }
     }
 

@@ -248,6 +248,7 @@ export class WorldGrid {
    */
   async enterInterior(interiorId) {
     this.isInterior = true;
+    this.currentInteriorId = interiorId;
 
     // Hide all exterior cells
     for (const [key, cell] of this.loadedCells) {
@@ -261,6 +262,16 @@ export class WorldGrid {
     this.interiorGroup = await this.cellLoader.loadInterior(interiorId);
     if (this.interiorGroup) {
       this.engine.scene.add(this.interiorGroup);
+
+      // Set interior bounds for player collision
+      // Extract size from the interior geometry (box room)
+      const size = this.interiorGroup.userData.roomSize || [10, 4, 10];
+      this.engine.player.setInteriorBounds({
+        minX: -size[0] / 2,
+        maxX: size[0] / 2,
+        minZ: -size[2] / 2,
+        maxZ: size[2] / 2,
+      });
     }
   }
 
@@ -269,6 +280,10 @@ export class WorldGrid {
    */
   exitInterior(exitPosition) {
     this.isInterior = false;
+    this.currentInteriorId = null;
+
+    // Clear interior bounds
+    this.engine.player.setInteriorBounds(null);
 
     // Remove interior
     if (this.interiorGroup) {

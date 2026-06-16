@@ -611,29 +611,61 @@ export class PlayerController {
       if (this.isMobile) this.flashActionBtn('🚶 Stand');
     }
     if (this.onSneakChanged) this.onSneakChanged(this.isSneaking);
+    this.updateSneakVisual();
+  }
+
+  updateSneakVisual() {
+    if (!this._sneakOverlay) {
+      this._sneakOverlay = document.createElement('div');
+      Object.assign(this._sneakOverlay.style, {
+        position: 'fixed', inset: '0', zIndex: '800', pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)',
+        transition: 'opacity 0.4s ease', opacity: '0',
+      });
+      document.body.appendChild(this._sneakOverlay);
+
+      this._sneakLabel = document.createElement('div');
+      Object.assign(this._sneakLabel.style, {
+        position: 'fixed', bottom: '32%', left: '50%', transform: 'translateX(-50%)',
+        color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace', fontSize: '11px',
+        letterSpacing: '3px', textTransform: 'uppercase', zIndex: '801',
+        pointerEvents: 'none', opacity: '0', transition: 'opacity 0.4s',
+      });
+      this._sneakLabel.textContent = '◈ sneaking ◈';
+      document.body.appendChild(this._sneakLabel);
+    }
+    this._sneakOverlay.style.opacity = this.isSneaking ? '1' : '0';
+    this._sneakLabel.style.opacity = this.isSneaking ? '1' : '0';
   }
 
   // ─── COLLISION DETECTION ────────────────────────────────────────
 
   /**
-   * Check player position against nearby solid objects and push back if overlapping.
-   * Uses simple cylinder-vs-cylinder approach (XZ plane only).
+   * Check player position against solid objects AND interior walls.
    */
   resolveCollisions() {
     if (!this.scene) return;
 
+    // ─── INTERIOR BOUNDARY CLAMPING ─────────────────────────────
+    // If inside an interior, clamp player to room bounds so they can't walk through walls
+    if (this._interiorBounds) {
+      const b = this._interiorBounds;
+      const margin = 0.5;
+      this.camera.position.x = Math.max(b.minX + margin, Math.min(b.maxX - margin, this.camera.position.x));
+      this.camera.position.z = Math.max(b.minZ + margin, Math.min(b.maxZ - margin, this.camera.position.z));
+    }
+
+    // ─── OBJECT COLLISION (exterior) ────────────────────────────
     const playerX = this.camera.position.x;
     const playerZ = this.camera.position.z;
-    const playerRadius = 0.4; // player collision radius
+    const playerRadius = 0.4;
 
-    // Only check objects within a reasonable range (8 units)
     this.scene.traverse((obj) => {
       if (!obj.isMesh || !obj.userData || obj.userData.collisionRadius <= 0) return;
 
       const cr = obj.userData.collisionRadius;
       if (!cr) return;
 
-      // Get object world position
       const wp = new THREE.Vector3();
       obj.getWorldPosition(wp);
 
@@ -643,7 +675,6 @@ export class PlayerController {
       const minDist = playerRadius + cr;
 
       if (dist < minDist && dist > 0.01) {
-        // Push player out
         const overlap = minDist - dist;
         const nx = dx / dist;
         const nz = dz / dist;
@@ -651,6 +682,14 @@ export class PlayerController {
         this.camera.position.z += nz * overlap;
       }
     });
+  }
+
+  /**
+   * Set interior bounds for wall collision. Called by Engine when entering/exiting interiors.
+   * @param {object|null} bounds - { minX, maxX, minZ, maxZ } or null to clear
+   */
+  setInteriorBounds(bounds) {
+    this._interiorBounds = bounds;
   }
 
   // ─── UPDATE ─────────────────────────────────────────────────────
