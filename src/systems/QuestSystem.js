@@ -71,10 +71,16 @@ export class QuestSystem {
 
   onDialogueEnded({ npcId }) {
     for (const [questId, quest] of this.quests) {
+      // Check talk objectives
       for (const obj of quest.objectives) {
         if (obj.type === 'talk' && obj.target === npcId && obj.current < obj.count) {
           this.updateObjective(questId, obj.id, 1);
         }
+      }
+
+      // Auto turn-in: if quest is ready and we just talked to the turnIn NPC
+      if (quest.readyToTurnIn && quest.turnIn === npcId) {
+        this.turnInQuest(questId);
       }
     }
   }

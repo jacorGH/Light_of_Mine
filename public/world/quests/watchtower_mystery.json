@@ -15,7 +15,7 @@
     {
       "id": "kill_skeletons",
       "type": "kill",
-      "target": "enemy_skeleton",
+      "target": "enemy_skeleton_01",
       "count": 3,
       "current": 0,
       "label": "Defeat the skeletons"

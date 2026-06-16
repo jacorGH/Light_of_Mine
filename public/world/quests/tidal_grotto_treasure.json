@@ -2,12 +2,12 @@
   "id": "tidal_grotto_treasure",
   "title": "Tidal Grotto Treasure",
   "description": "Old Harren swears there's treasure hidden in the beach cave. Explore the grotto before the tide returns.",
-  "giver": "old_harren",
+  "giver": "fisherman_01",
   "objectives": [
     {
       "id": "explore_beach_cave",
       "type": "explore",
-      "target": "beach_cave_interior",
+      "target": "beach_cave",
       "count": 1,
       "current": 0,
       "label": "Explore the beach cave"
@@ -25,6 +25,6 @@
     ],
     "xp": 50
   },
-  "turnIn": "old_harren",
+  "turnIn": "fisherman_01",
   "completionDialogue": "Ha! I knew it was real. Keep the necklace — consider it your share of the haul."
 }
