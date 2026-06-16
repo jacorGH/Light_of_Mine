@@ -391,12 +391,11 @@ export class PlayerController {
     const thirdWidth = (actionRight - actionLeft) / 3;
     const touchX = this.actionTouch.startX;
 
-    const subZone = touchX < (actionLeft + thirdWidth) ? 'weapon'
-                  : touchX > (actionRight - thirdWidth) ? 'spell'
+    const subZone = touchX < (actionLeft + thirdWidth) ? 'left_hand'
+                  : touchX > (actionRight - thirdWidth) ? 'right_hand'
                   : 'center';
 
     if (dist < 15) {
-      // Tap — no movement
       if (subZone === 'center') {
         if (this.isGrounded) { this.jumpVelocity = this.jumpForce; this.isGrounded = false; }
       }
@@ -406,14 +405,14 @@ export class PlayerController {
     const angle = Math.atan2(-dy, dx);
     const deg = ((angle * 180 / Math.PI) + 360) % 360;
 
-    if (subZone === 'weapon') {
-      // Right-side slot: cycle right hand items
-      if ((deg >= 315 || deg < 45)) { if (this.onWeaponCycle) this.onWeaponCycle(1); }
-      else if (deg >= 135 && deg < 225) { if (this.onWeaponCycle) this.onWeaponCycle(-1); }
-    } else if (subZone === 'spell') {
-      // Left-side slot: cycle left hand items
+    if (subZone === 'left_hand') {
+      // Left slot: cycle LEFT hand items
       if ((deg >= 315 || deg < 45)) { if (this.onSpellCycle) this.onSpellCycle(1); }
       else if (deg >= 135 && deg < 225) { if (this.onSpellCycle) this.onSpellCycle(-1); }
+    } else if (subZone === 'right_hand') {
+      // Right slot: cycle RIGHT hand items
+      if ((deg >= 315 || deg < 45)) { if (this.onWeaponCycle) this.onWeaponCycle(1); }
+      else if (deg >= 135 && deg < 225) { if (this.onWeaponCycle) this.onWeaponCycle(-1); }
     } else {
       // Center: swipe up = jump, swipe down = sneak
       if (deg >= 45 && deg < 135) {

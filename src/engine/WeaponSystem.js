@@ -97,13 +97,21 @@ export class WeaponSystem {
   // ─── HAND ASSIGNMENT ────────────────────────────────────────────
 
   assignToHand(hand, item) {
-    if (hand === 'left') this.leftHand = item;
-    else this.rightHand = item;
-
-    // If item is two-handed, take both slots
     if (item.twoHanded) {
+      // Two-handed takes both slots
       this.leftHand = item;
       this.rightHand = item;
+    } else {
+      // One-handed: assign to the specified hand
+      if (hand === 'left') {
+        this.leftHand = item;
+        // If right hand was a two-handed item, clear it to default
+        if (this.rightHand.twoHanded) this.rightHand = this.physicalWeapons[0];
+      } else {
+        this.rightHand = item;
+        // If left hand was a two-handed item, clear it to default
+        if (this.leftHand.twoHanded) this.leftHand = this.spells[0];
+      }
     }
 
     this.showActiveViewmodel();
@@ -114,10 +122,25 @@ export class WeaponSystem {
 
   cycleHand(hand, direction) {
     const current = hand === 'left' ? this.leftHand : this.rightHand;
-    const idx = this.allItems.findIndex(i => i.id === current.id);
-    const newIdx = (idx + direction + this.allItems.length) % this.allItems.length;
-    const newItem = this.allItems[newIdx];
-    this.assignToHand(hand, newItem);
+    const currentIdx = this.allItems.findIndex(i => i.id === current.id);
+    let newIdx = currentIdx;
+
+    // Skip items that would cause invalid combos (two-handed in one slot while other has something)
+    for (let attempt = 0; attempt < this.allItems.length; attempt++) {
+      newIdx = (newIdx + direction + this.allItems.length) % this.allItems.length;
+      const candidate = this.allItems[newIdx];
+
+      // If candidate is two-handed, it takes both slots — always valid
+      if (candidate.twoHanded) {
+        this.assignToHand(hand, candidate);
+        return;
+      }
+
+      // If the OTHER hand has a two-handed item, we need to clear it first
+      // (cycling away from two-handed state = put one-handed in this slot)
+      this.assignToHand(hand, candidate);
+      return;
+    }
   }
 
   nextWeapon() { this.cycleHand('right', 1); }
