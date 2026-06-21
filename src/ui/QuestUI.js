@@ -24,26 +24,42 @@ export class QuestUI {
   /* ─── DOM Setup ──────────────────────────────────────────────────── */
 
   createTracker() {
+    // Toggle button
+    this.trackerToggle = document.createElement('div');
+    Object.assign(this.trackerToggle.style, {
+      position: 'fixed', top: '90px', left: '10px',
+      width: '24px', height: '24px', borderRadius: '4px',
+      background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,200,100,0.3)',
+      display: 'none', alignItems: 'center', justifyContent: 'center',
+      zIndex: '801', cursor: 'pointer', fontSize: '12px',
+    });
+    this.trackerToggle.textContent = '📋';
+    this.trackerToggle.addEventListener('click', () => { this.trackerVisible = !this.trackerVisible; this.tracker.style.display = this.trackerVisible ? 'block' : 'none'; });
+    this.trackerToggle.addEventListener('touchend', (e) => { e.preventDefault(); this.trackerVisible = !this.trackerVisible; this.tracker.style.display = this.trackerVisible ? 'block' : 'none'; });
+    document.body.appendChild(this.trackerToggle);
+
+    this.trackerVisible = true;
     this.tracker = document.createElement('div');
     this.tracker.id = 'quest-tracker';
     Object.assign(this.tracker.style, {
       position: 'fixed',
-      top: '16px',
-      right: '16px',
-      minWidth: '220px',
-      maxWidth: '300px',
-      padding: '12px 16px',
-      backgroundColor: 'rgba(10, 10, 20, 0.8)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      top: '90px',
+      left: '38px',
+      maxWidth: '180px',
+      padding: '8px 10px',
+      backgroundColor: 'rgba(10, 10, 20, 0.85)',
+      border: '1px solid rgba(255, 200, 100, 0.2)',
       borderRadius: '6px',
-      fontFamily: '"Courier New", Courier, monospace',
-      fontSize: '13px',
+      fontFamily: 'monospace',
+      fontSize: '10px',
       color: '#e0e0e0',
-      lineHeight: '1.5',
+      lineHeight: '1.4',
       zIndex: '800',
-      pointerEvents: 'none',
-      display: 'none'
+      pointerEvents: 'auto',
+      display: 'none',
+      cursor: 'pointer',
     });
+    this.tracker.addEventListener('click', () => { this.trackerVisible = false; this.tracker.style.display = 'none'; });
     document.body.appendChild(this.tracker);
   }
 
@@ -102,10 +118,12 @@ export class QuestUI {
 
     if (visible.length === 0) {
       this.tracker.style.display = 'none';
+      this.trackerToggle.style.display = 'none';
       return;
     }
 
-    this.tracker.style.display = 'block';
+    this.trackerToggle.style.display = 'flex';
+    this.tracker.style.display = this.trackerVisible ? 'block' : 'none';
 
     let html = '';
     for (const quest of visible) {

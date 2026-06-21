@@ -1,3 +1,5 @@
+import { events } from './EventBus.js';
+
 /**
  * Inventory — manages player items, equipment, and HUD display.
  * 
@@ -10,6 +12,7 @@ export class Inventory {
 
     // Item storage: Map<id, { id, name, type, icon, quantity, stats }>
     this.items = new Map();
+    this.gold = 25; // Currency stored separately
 
     // Equipment slots
     this.equipment = {
@@ -27,15 +30,27 @@ export class Inventory {
 
     // Start with some default items
     this.addItem({ id: 'potion_health_minor', name: 'Health Potion', type: 'consumable', icon: '❤', quantity: 3 });
-    this.addItem({ id: 'gold', name: 'Gold', type: 'currency', icon: '●', quantity: 25 });
 
     // Input
     this.setupInput();
+
+    // Global item use handler (for inventory panel buttons)
+    window._useItem = (itemId) => {
+      this.useItem(itemId);
+    };
   }
 
   // ─── ITEM MANAGEMENT ────────────────────────────────────────────
 
   addItem(item) {
+    // Gold/currency is a counter, not an inventory item
+    if (item.id === 'gold' || item.type === 'currency' || item.type === 'gold') {
+      this.gold += (item.quantity || 1);
+      this.updateHUD();
+      this.showPickupNotification('Gold', item.quantity || 1);
+      return;
+    }
+
     if (this.items.has(item.id)) {
       const existing = this.items.get(item.id);
       existing.quantity += (item.quantity || 1);
@@ -54,6 +69,12 @@ export class Inventory {
   }
 
   removeItem(id, quantity = 1) {
+    if (id === 'gold') {
+      if (this.gold < quantity) return false;
+      this.gold -= quantity;
+      this.updateHUD();
+      return true;
+    }
     if (!this.items.has(id)) return false;
     const item = this.items.get(id);
     item.quantity -= quantity;
@@ -70,6 +91,7 @@ export class Inventory {
   }
 
   getItemCount(id) {
+    if (id === 'gold') return this.gold;
     if (!this.items.has(id)) return 0;
     return this.items.get(id).quantity;
   }
@@ -200,9 +222,7 @@ export class Inventory {
   }
 
   updateHUD() {
-    const gold = this.getItemCount('gold');
-    this.goldDisplay.textContent = `● ${gold} gold`;
-
+    this.goldDisplay.textContent = `● ${this.gold} gold`;
     const potions = this.getItemCount('potion_health_minor');
     this.potionDisplay.textContent = potions > 0 ? `❤ ×${potions}` : '';
   }
@@ -210,26 +230,27 @@ export class Inventory {
   updateInventoryPanel() {
     if (!this.isOpen) return;
 
-    let html = '<div style="color:#ffcc66;font-size:15px;margin-bottom:12px;border-bottom:1px solid rgba(255,200,100,0.2);padding-bottom:8px"><strong>Inventory</strong></div>';
+    let html = '<div style="color:#ffcc66;font-size:14px;margin-bottom:10px;border-bottom:1px solid rgba(255,200,100,0.2);padding-bottom:6px"><strong>Inventory</strong> <span style="color:#ffdd44;font-size:11px">● ' + this.gold + ' gold</span></div>';
 
-    if (this.items.size === 0) {
-      html += '<div style="color:#888">Empty</div>';
+    const items = [...this.items.values()].filter(i => i.type !== 'currency');
+    if (items.length === 0) {
+      html += '<div style="color:#666">No items</div>';
     } else {
-      html += '<div style="display:grid;grid-template-columns:1fr;gap:6px">';
-      for (const [id, item] of this.items) {
+      for (const item of items) {
         const typeColor = this.getTypeColor(item.type);
-        html += `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,0.04);border-radius:4px;border:1px solid rgba(255,255,255,0.08)">`;
-        html += `<span style="font-size:16px">${item.icon}</span>`;
-        html += `<span style="flex:1;color:${typeColor}">${item.name}</span>`;
-        html += `<span style="color:#aaa">×${item.quantity}</span>`;
-        html += `</div>`;
+        const canUse = item.type === 'consumable';
+        html += '<div style="display:flex;align-items:center;gap:6px;padding:8px;background:rgba(255,255,255,0.03);border-radius:4px;border:1px solid rgba(255,255,255,0.06);margin-bottom:4px">';
+        html += '<span style="font-size:16px">' + item.icon + '</span>';
+        html += '<span style="flex:1;color:' + typeColor + ';font-size:12px">' + item.name + '</span>';
+        html += '<span style="color:#888;font-size:11px">×' + item.quantity + '</span>';
+        if (canUse) {
+          html += '<button onclick="window._useItem(\'' + item.id + '\')" style="background:rgba(100,200,100,0.2);border:1px solid rgba(100,200,100,0.5);border-radius:4px;color:#88ff88;padding:3px 8px;font-size:10px;font-family:monospace;cursor:pointer">Use</button>';
+        }
+        html += '</div>';
       }
-      html += '</div>';
     }
 
-    // Close button
-    html += '<div style="margin-top:12px;text-align:center;color:#888;font-size:11px">Tab / I / tap ≡ to close</div>';
-
+    html += '<div style="margin-top:10px;text-align:center;color:#555;font-size:10px">Tap ≡ to close</div>';
     this.inventoryPanel.innerHTML = html;
   }
 
@@ -255,5 +276,27 @@ export class Inventory {
       this.notification.style.opacity = '0';
       this.notification.style.top = '50px';
     }, 1500);
+  }
+
+  useItem(id) {
+    const item = this.items.get(id);
+    if (!item || item.type !== 'consumable') return;
+
+    // Use the consumable
+    if (id === 'potion_health_minor' || id.includes('health')) {
+      events.emit('player:healed', { amount: 30 });
+      this.showPickupNotification('Used ' + item.name, 0);
+    } else if (id.includes('stamina')) {
+      // Future: restore stamina
+      this.showPickupNotification('Used ' + item.name, 0);
+    } else if (id.includes('magicka')) {
+      // Future: restore magicka
+      this.showPickupNotification('Used ' + item.name, 0);
+    } else {
+      this.showPickupNotification('Used ' + item.name, 0);
+    }
+
+    this.removeItem(id, 1);
+    this.updateInventoryPanel();
   }
 }

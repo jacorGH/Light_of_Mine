@@ -70,7 +70,9 @@
         "enemies": [
           { "asset": "enemy_skeleton_01", "position": [22, 0, -18] },
           { "asset": "enemy_skeleton_01", "position": [34, 0, -30] },
-          { "asset": "enemy_skeleton_archer", "position": [20, 3, -28] }
+          { "asset": "enemy_skeleton_archer", "position": [20, 3, -28] },
+          { "asset": "enemy_skeleton_01", "position": [30, 0, -20] },
+          { "asset": "enemy_skeleton_01", "position": [26, 0, -32] }
         ]
       }
     }
