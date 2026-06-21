@@ -232,6 +232,79 @@ Player spawns at (32, 2, 32) in cell (0,0) — Southern Shore.
 
 ---
 
+### Session 4 — June 21, 2026
+
+**Status:** Refined combat, fixed core bugs, designed full project roadmap
+
+**What was built/fixed this session:**
+
+*Combat system overhaul:*
+- Hand-based attack origin (left 40% of screen = left hand, right 40% = right hand, center 20% = both)
+- Dual viewmodels (both weapon + spell visible simultaneously)
+- Flexible hand assignment (any item in either hand)
+- Two-handed weapons (bow) properly take both slots, prevent invalid combos
+- Hold on ranged hand = zoom/aim, hold on melee hand = power attack
+- Inverted action bar cycling fixed (left slot = left hand, right slot = right hand)
+- Projectiles now collide with enemies (distance check every frame)
+- Spells properly drain magicka (not stamina)
+- Heal spell added (20 magicka → 30 HP restored)
+
+*Quest system fixes:*
+- Fixed quest target ID mismatches (beach_cave_interior → beach_cave, enemy_skeleton → enemy_skeleton_01)
+- Fixed quest giver/turnIn NPC ID mismatches (old_harren → fisherman_01)
+- Added auto turn-in (talk to turn-in NPC after completing objectives = rewards)
+- Retroactive objective completion (explored before quest = auto-satisfies explore objective)
+- visitedInteriors tracking persists in save
+
+*Interior fixes:*
+- Wall collision (player clamped to room bounds)
+- Interior isolation (can't walk out of bounds to interact with exterior)
+- InteractionSystem refreshes cache on interior enter/exit events
+
+*UI/UX:*
+- Sneak visual feedback (dark vignette overlay + "◈ sneaking ◈" label)
+- Sprint double-tap on joystick zone
+- Save notification changed to subtle icon (💾 top-right pulse) instead of large text
+- Action bar redesigned as dual quickslot: [⚔ Left] [↑ Jump] [✨ Right]
+- Combat labels simplified to directional arrows (no more "Slash Up" for spells)
+- Radial menu spell list pulls dynamically from weapon system
+
+*Water/World:*
+- Ocean rewritten as custom vertex/fragment shader (no CDN dependency)
+- Multi-octave wave displacement, specular sun highlights, fresnel, foam
+- Island terrain falloff (smooth slope to sea level at all edges)
+- Tidal Grotto interior created (bioluminescent cave with treasure)
+
+*Documentation:*
+- PRD.md written (full product requirements: ECS, skills, alchemy, spell creation, enchanting, content pipeline)
+- GAME_DESIGN.md rewritten (current status, Phase 2-4 roadmap, controls reference)
+
+**Decisions Made:**
+- Moving to Entity Component System architecture for all world objects
+- 18 skills across 4 categories (Combat, Magic, Stealth, Crafting)
+- Skills improve by USE not by spending points (Morrowind-style)
+- Alchemy: combine 2-3 ingredients with shared effects → potions
+- Spell creation: combine effects + set magnitude/duration → custom spells at altars
+- Enchanting: soul gems + effects → enchanted weapons/armor
+- Elemental blending is a mid-game unlockable skill (not available from start)
+- Dungeon generation: room-based JSON with connections and entity placements
+- All objects will be ECS entities with composable components
+- Content validated before deploy (IDs match, targets exist)
+
+**Project Roadmap (from PRD):**
+- Phase 2: ECS foundation → death/respawn → skills → item properties → alchemy → spell creation
+- Phase 3: 20+ cells, 10+ interiors, 15+ quests, proc dungeons, weather, factions
+- Phase 4: Real assets, animations, audio, optimization, packaging
+
+**Immediate Next Steps:**
+1. ECS Foundation (Entity + Component + Prefab Registry)
+2. Death/Respawn screen
+3. Skills system (use-based progression)
+4. Item properties (weight, value, element, durability)
+5. Enemy respawn on cell reload
+
+---
+
 *To add a new session, copy the template below:*
 
 ```

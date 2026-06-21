@@ -1,13 +1,13 @@
 # Light of Mine — Game Design Document
 
-> This document defines the player experience, core systems, and development strategy.
-> All implementation decisions should reference this document.
+> This document defines the player experience, systems status, and development roadmap.
+> For full technical specifications, see `PRD.md`. For content schemas, see `SCHEMA.md`.
 
 ---
 
-## 1. Vision Statement
+## 1. Vision
 
-**Light of Mine** is a first-person open-world RPG for mobile and web browsers, inspired by *The Elder Scrolls III: Morrowind* and *Daggerfall*. The player explores a mysterious island, interacts with NPCs, collects items, casts spells, and fights enemies — all through an intuitive touch/mouse interface with Daggerfall-style directional combat.
+A first-person open-world RPG (Morrowind/Daggerfall inspired) for mobile and web. The player explores, fights, crafts, and discovers on a mysterious island. Deep systems (alchemy, spell creation, skills) create emergent gameplay. AI-assisted content pipeline enables rapid world expansion.
 
 **Core Fantasy:** "I washed ashore on a strange island. I explore ruins, learn magic, trade with villagers, delve into dungeons, and uncover the island's secrets — all from my phone."
 
@@ -15,291 +15,191 @@
 
 ## 2. Player Experience Pillars
 
-These are the feelings we optimize for. Every feature must serve at least one:
-
 | Pillar | Description |
 |--------|-------------|
-| **Discovery** | The joy of exploring an unfamiliar world. Finding hidden caves, secret items, lore. |
-| **Agency** | The player chooses how to play — melee warrior, spell caster, archer, thief, or hybrid. |
-| **Tactile Combat** | Fighting feels physical and skill-based. Swipe direction matters. Positioning matters. |
-| **Progression** | Getting stronger through loot, skills, and knowledge. The RPG loop. |
-| **Atmosphere** | The world feels alive — weather, day/night, ambient sound, NPC routines. |
+| **Discovery** | Finding hidden caves, secret items, lore. The joy of "what's over that hill?" |
+| **Agency** | Play your way — warrior, mage, archer, thief, or any hybrid. No class restrictions. |
+| **Tactile Combat** | Swipe direction = attack direction. Position matters. Both hands independent. |
+| **Progression** | Skills improve by use. Loot gets better. Crafting unlocks new possibilities. |
+| **Atmosphere** | Living world — NPCs have routines, day turns to night, weather changes. |
 
 ---
 
-## 3. Core Systems
+## 3. Systems Status
 
-### 3.1 World
+### ✅ Complete (Phase 1)
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Cell streaming | Seamless exterior (no loading screens) | ✅ Done |
-| Interiors | Separate scenes via doors | ✅ Designed |
-| Terrain | Unified global height, per-cell biome colors | ✅ Done |
-| Day/night cycle | Lighting changes over time, affects gameplay | P1 |
-| Weather | Rain, fog, storms — affect visibility and mood | P2 |
-| Water | Ocean boundary, rivers, swimming | P1 |
-| Doors/transitions | Enter buildings, caves, dungeons | P1 |
-| NPC schedules | NPCs move between locations based on time | P3 |
+| System | Details |
+|--------|---------|
+| World streaming | 9 cells, seamless, island with ocean |
+| Controls | Mobile 3-zone + PC WASD/mouse |
+| Hand-based combat | Left/right touch → left/right hand, directional swipes |
+| Dual quickslot | Weapon + spell in separate hands |
+| Two-handed weapons | Bow takes both hands, proper handling |
+| Enemy AI | 7 types, state machine (idle→alert→chase→attack→die) |
+| Quests | 3 quests, auto-tracking, auto turn-in |
+| Dialogue | Typewriter UI, branching trees, 3 NPCs |
+| Inventory | Item collection, HUD display |
+| Player stats | HP/Stamina/Magicka, regen, leveling |
+| Day/night | 8 presets, smooth interpolation, sun arc |
+| Water | Custom shader ocean with waves |
+| Interiors | Tavern + grotto, wall collision, exit doors |
+| Save/load | localStorage, auto-save, full state |
+| Map | Minimap + full map with waypoints |
+| Radial menu | Connected ring, tumble drill-in, categories |
+| Sneak | Visual vignette, reduced detection, crouch height |
+| Sprint | Toggle, double-tap joystick |
+| Grass | Zelda-style clumps, cutting, particle scatter, loot drops |
+| Terrain | Global height function, island falloff, biome colors |
+| Collision | Object collision radii, interior bounds |
 
-### 3.2 Player
+### 🔨 Phase 2 — Systems Depth (CURRENT)
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| First-person camera | Done | ✅ Done |
-| Terrain following | Raycast to ground | ✅ Done |
-| Jump | Physics-based arc | ✅ Done |
-| Sprint | Hold to move faster, drains stamina | P1 |
-| Swim | Water traversal | P2 |
-| Sneak | Reduced detection, bonus damage | P2 |
-| Stats | Health, Stamina, Magicka | P1 |
-| Leveling | XP from combat, exploration, quests → level up → stat increases | P1 |
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| 1 | **ECS Foundation** | Not started | Entity + Component + Prefab Registry. See PRD §3. |
+| 2 | **Death/Respawn** | Not started | Death screen → respawn at last save |
+| 3 | **Skills system** | Not started | 18 skills, use = improve. See PRD §4.1 |
+| 4 | **Item properties** | Not started | Weight, value, element, durability |
+| 5 | **Enemy respawn** | Not started | Respawn on cell reload (time-based) |
+| 6 | **Blocking** | Not started | Hold in combat zone = block stance |
+| 7 | **Lockpicking** | Not started | Timing minigame, skill-based |
+| 8 | **Alchemy** | Not started | Combine ingredients → potions. See PRD §4.2 |
+| 9 | **Spell creation** | Not started | Combine effects → custom spells. See PRD §4.3 |
+| 10 | **Enchanting** | Not started | Soul gems + effects → enchanted gear. See PRD §4.4 |
+| 11 | **Status effects** | Not started | Burn, freeze, shock, poison, bless |
+| 12 | **Elemental blending** | Not started | Center-swipe combo (unlockable mid-game) |
+| 13 | **More enemies** | Not started | Bandits, mages, animals (via ECS prefabs) |
+| 14 | **Quick-assign UX** | Not started | Better weapon/spell hand assignment |
+| 15 | **Merchants** | Not started | Buy/sell interface with NPCs |
 
-### 3.3 Combat
+### 📦 Phase 3 — Content Volume
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Directional melee | Daggerfall-style: swipe direction = attack direction | ✅ Done |
-| Weapon types | One-handed (sword, axe, dagger), Two-handed (greatsword, staff), Ranged (bow) | P1 |
-| Handedness | Dominant hand determines weapon offset | ✅ Done |
-| Blocking | Hold/tap gesture = raise shield/weapon to block | P1 |
-| Projectile spells | Fireball, icicle — fly through world | ✅ Done |
-| Arrows | Gravity arc, limited ammo | ✅ Done |
-| Enemy AI | Patrol, detect player, chase, attack, die | P1 |
-| Damage numbers | Visual feedback when hitting/being hit | P2 |
-| Death/respawn | Player dies → respawn at last save point | P1 |
+| Feature | Notes |
+|---------|-------|
+| 20+ exterior cells | Expand island in all directions |
+| 10+ interiors | Shops, dungeons, houses, caves |
+| 15+ quests | Main story + side quests |
+| 30+ NPCs | Unique dialogue, routines |
+| 20+ enemy types | Via ECS prefabs, no code changes |
+| Procedural dungeons | Room-based JSON generation |
+| Books/lore | Scattered in world, grant skill XP |
+| Factions | Reputation, exclusive quests/items |
+| Weather | Rain, storms, fog — affect gameplay |
+| NPC schedules | Time-based routines |
+| Crime system | Stealing, bounties, guards |
 
-### 3.4 Items & Inventory
+### 🎨 Phase 4 — Production Polish
 
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Item pickup | Walk near + interact, or auto-collect (grass drops) | ✅ Partial |
-| Inventory grid | Full item list with categories, quantities | ✅ Done |
-| Equipment slots | Weapon, Shield, Armor, Ring, Amulet | P1 |
-| Consumables | Potions (health, stamina, magicka), food | P1 |
-| Loot drops | Enemies and containers drop items | P1 |
-| Item rarity | Common, Uncommon, Rare, Legendary (color-coded) | P2 |
-| Shops | Buy/sell with NPCs | P2 |
-
-### 3.5 Magic
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Spell slots | Player equips known spells to quick-slots | P1 |
-| Spell types | Destruction (damage), Restoration (heal), Alteration (utility) | P1 |
-| Magicka cost | Each spell drains magicka, regens over time | P1 |
-| Spell discovery | Find spell scrolls/books in the world | P2 |
-
-### 3.6 NPCs & Dialogue
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Dialogue trees | JSON-defined conversations with choices | P1 |
-| Quests | Accept, track, complete quests from NPCs | P1 |
-| Shops | Buy/sell interface | P2 |
-| Factions | Reputation system | P3 |
-
-### 3.7 UI / Controls
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| Radial pause menu | Category ring → swipe in → sub-items → swipe out | **P0 (next)** |
-| HUD | Health/Stamina/Magicka bars, compass, gold | P1 |
-| Mobile combat zone | Top 70% = swipe to attack | ✅ Done |
-| Mobile movement | Bottom-left joystick | ✅ Done |
-| Mobile look | Bottom-right drag | ✅ Done |
-| Mobile action wheel | Bottom-center: jump, cycle weapon | ✅ Done |
-| PC controls | WASD + Mouse + Number keys + Scroll | ✅ Done |
-| Minimap/compass | Direction indicator at top | P2 |
+| Feature | Notes |
+|---------|-------|
+| Low-poly 3D models (.glb) | Replace all placeholder geometry |
+| Character animations | Walk, attack, idle, die |
+| UI art | Polished menus, icons, frames |
+| Sound effects | Combat, environment, UI feedback |
+| Music | Ambient + combat tracks |
+| Performance optimization | LOD, frustum culling, instancing |
+| PWA/native packaging | Installable on mobile |
+| Tutorial | Guided first 5 minutes |
+| Balance pass | Difficulty curve, economy tuning |
 
 ---
 
-## 4. Radial Pause Menu — Design Specification
+## 4. Controls (Current)
 
-The signature UI element. Pauses the game, gives full access to inventory/equipment/spells.
-
-### Concept: "Tumble Ring"
-
-**Opening:** Hold two fingers (mobile) or press Tab/Esc (PC).
-- Time freezes (game pauses)
-- A ring of **category nodes** appears, spinning out from center with a tumble/card-flip animation
-- Each node is a circle with an icon + label
-
-**Categories (outer ring):**
-- ⚔ Weapons
-- 🛡 Equipment
-- 🧪 Items
-- ✨ Spells
-- 📋 Quests
-- ⚙ Settings
-
-**Navigating IN:** Swipe/drag toward a category (or tap it)
-- The outer ring tumbles backward (shrinks + rotates away)
-- The selected category's items tumble forward from center, forming a new ring
-- e.g., "Weapons" shows: Iron Sword, Fist, Fireball, Icicle, Bow...
-
-**Navigating OUT:** Swipe outward from center (or tap back/edge)
-- Current ring tumbles backward
-- Category ring tumbles back in
-
-**Selecting:** Tap an item in the inner ring
-- Equips/uses it
-- Brief flash of confirmation
-- Menu closes, game resumes
-
-**Visual Style:**
-- Dark semi-transparent backdrop (world still visible but dimmed + blurred)
-- Items arranged in a circle, evenly spaced
-- Selected item scales up slightly with a glow
-- Smooth spring-physics animation on the tumble transitions
-- Items show: icon, name, and quick stats on hover/select
-
----
-
-## 5. Architecture Strategy
-
-### Principles
-
-1. **System separation** — Each system (Combat, Inventory, UI, World) is its own module with clean interfaces
-2. **Data-driven** — Game content lives in JSON (world, items, spells, dialogues, quests)
-3. **Event-based communication** — Systems communicate through an event bus, not direct coupling
-4. **Mobile-first** — Touch is the primary input; PC is the bonus (not the other way around)
-5. **AI-content-ready** — Schemas designed so an LLM can generate valid content
-
-### Module Structure (target)
-
+### Mobile Layout
 ```
-src/
-├── main.js                  # Entry, init
-├── engine/
-│   ├── Engine.js            # Renderer, loop, system orchestration
-│   ├── EventBus.js          # Pub/sub for system communication
-│   ├── PlayerController.js  # Input + movement (no game logic)
-│   ├── WorldGrid.js         # Cell streaming
-│   └── CellLoader.js        # Cell → Three.js scene builder
-├── systems/
-│   ├── CombatSystem.js      # Damage calc, hit detection, enemy AI
-│   ├── InventorySystem.js   # Item storage, equipment, drops
-│   ├── MagicSystem.js       # Spells, magicka, effects
-│   ├── QuestSystem.js       # Quest tracking, objectives, rewards
-│   ├── NPCSystem.js         # Dialogue, behavior, schedules
-│   └── PlayerStats.js       # HP, Stamina, Magicka, XP, Level
-├── ui/
-│   ├── RadialMenu.js        # Pause menu (tumble ring)
-│   ├── HUD.js               # Health bars, compass, gold
-│   ├── DialogueUI.js        # NPC conversation display
-│   └── NotificationUI.js    # Pickup/damage/quest notifications
-├── rendering/
-│   ├── WeaponViewmodel.js   # First-person weapon display + animation
-│   ├── GrassSystem.js       # Grass clumps, cutting, particles
-│   ├── SkySystem.js         # Day/night, weather, sky colors
-│   └── WaterSystem.js       # Ocean, rivers, reflections
-└── data/
-    └── ItemDatabase.js      # Item definitions, stats, rarities
+┌───────────────────────────────────────────────┐
+│                                               │
+│  LEFT HAND      BOTH (combo)    RIGHT HAND    │
+│  touch left     center 20%     touch right    │
+│  40% = use      future blend    40% = use     │
+│  left hand      attacks          right hand   │
+│                                               │
+│  Hold ranged = zoom+aim                       │
+│  Hold melee = power attack                    │
+│                                               │
+├─────────────┬──────────────┬──────────────────┤ ← 70%
+│   MOVE      │ [⚔][↑][✨]  │     LOOK         │
+│  joystick   │  L  jmp  R   │     drag         │
+│  dbl=sprint │  cycle slots  │  dbl=sneak      │
+│  30%        │  hold=menu    │     30%         │
+└─────────────┴──────────────┴──────────────────┘
 ```
 
-### Event Bus Pattern
+### PC Controls
+| Action | Key |
+|--------|-----|
+| Move | WASD / Arrows |
+| Look | Mouse |
+| Attack | Left-click |
+| Zoom/Aim | Right-click hold |
+| Jump | Space |
+| Sprint toggle | Shift |
+| Sneak toggle | Ctrl |
+| Weapon cycle | Scroll / 1-3 |
+| Spell cycle | Shift+Scroll / 4-6 |
+| Menu | Tab / Esc |
+| Map | M |
+| Save | F5 |
+| Load | F9 |
 
-Instead of systems directly calling each other:
-```js
-// Bad (tight coupling):
-grassCutter → engine.weaponSystem.attack()
-weaponSystem → engine.inventory.addItem()
+---
 
-// Good (event bus):
-events.emit('player:attack', { direction, power, weapon })
-events.emit('item:collected', { id: 'gold', quantity: 5 })
-events.emit('enemy:damaged', { enemyId, damage, type })
-events.emit('player:damaged', { amount, source })
-events.emit('quest:objective_complete', { questId, objectiveId })
+## 5. Content Creation (For Designers/AI)
+
+All content is JSON-defined. See `SCHEMA.md` for full specifications and AI prompt templates.
+
+| Content Type | File Location | Key Reference |
+|---|---|---|
+| Exterior cells | `public/world/cells/` | SCHEMA.md §2 |
+| Interiors | `public/world/interiors/` | SCHEMA.md §3 |
+| Dialogue | `public/world/dialogue/` | SCHEMA.md §4 |
+| Quests | `public/world/quests/` | SCHEMA.md §5 |
+| Entity prefabs | `public/world/prefabs/` | PRD.md §3 (ECS) |
+| Dungeons | `public/world/dungeons/` | PRD.md §4.7 |
+
+### Quick-Add Checklist
+
+**New cell:** Create JSON → register in world_grid.json → add blend regions to neighbors
+**New interior:** Create JSON → register in world_grid.json → add door in exterior cell
+**New quest:** Create quest JSON → add quest_start action in NPC dialogue → verify targets
+**New enemy:** Add to ENEMY_TYPES in EnemySystem (future: ECS prefab only)
+**New item:** Add to loot tables / chest contents / shop inventories
+
+---
+
+## 6. World Map
+
+```
+        x=-1          x=0          x=1
+       ────────────────────────────────────
+y=-2   │  Swamp     │  Deep      │  Mountain  │
+       │  Bogmire   │  Woods     │  Ashpeak   │
+       ────────────────────────────────────
+y=-1   │  Village   │  Forest    │  Ruins     │
+       │  Driftwood │  Ashwood   │  Watchtower│
+       ────────────────────────────────────
+y=0    │  Cliffs    │  Beach     │  Tidepools │
+       │  Western   │  South ★   │  Eastern   │
+       ────────────────────────────────────
+
+★ = Player spawn (0,0)
+Interiors: The Salty Dog (village), Tidal Grotto (beach)
 ```
 
-Systems subscribe to events they care about. No system knows about other systems directly.
+---
+
+## 7. Immediate Next Steps (Priority Order)
+
+1. **ECS Foundation** — Entity, Component, EntityManager, Prefab Registry, EntityLoader
+2. **Death/Respawn** — Screen + respawn at last save point
+3. **Skills** — Use-based progression for all 18 skills
+4. **Item Properties** — Weight, value, element, durability on all items
+5. **Enemy Respawn** — Enemies return when player leaves and returns to cell
+
+These 5 features unblock everything else in Phase 2.
 
 ---
 
-## 6. Development Phases
-
-### Phase 0 — Foundation (current state)
-- [x] Three.js + Vite setup
-- [x] Cell streaming world
-- [x] First-person controls (PC + mobile)
-- [x] Terrain following
-- [x] Placeholder combat (directional swipes)
-- [x] Grass clumps + cutting
-- [x] Basic inventory
-- [x] Weapon viewmodel
-- [ ] **Radial pause menu**
-- [ ] **Event bus (decouple systems)**
-
-### Phase 1 — Core Loop (playable demo)
-- [ ] Player stats (HP, Stamina, Magicka bars)
-- [ ] Enemy spawning + basic AI (chase, attack, die)
-- [ ] Damage system (player hits enemy, enemy hits player)
-- [ ] Death/respawn
-- [ ] Item pickup from world (walk near + interact)
-- [ ] Door transitions (enter interiors)
-- [ ] 1 full interior (tavern or cave)
-- [ ] NPC dialogue (basic text tree)
-- [ ] 1 simple quest (talk → fetch → return)
-- [ ] Day/night cycle (lighting changes)
-- [ ] Save/load (localStorage)
-
-### Phase 2 — Depth
-- [ ] Multiple enemy types
-- [ ] Spell system (3-4 spells)
-- [ ] Equipment stats (armor, damage bonuses)
-- [ ] Shops (buy/sell)
-- [ ] More interiors (3-5 buildings)
-- [ ] Quest journal UI
-- [ ] Weather system
-- [ ] Water/swimming
-- [ ] Sound effects + ambient audio
-
-### Phase 3 — Content
-- [ ] Expand island (more cells)
-- [ ] Multiple quest lines
-- [ ] Boss encounters
-- [ ] Factions/reputation
-- [ ] Procedural dungeons
-- [ ] AI-generated content pipeline
-- [ ] Real 3D assets (replace placeholders)
-
----
-
-## 7. Content Pipeline (AI-Assisted)
-
-The JSON schema is designed for LLM generation:
-
-1. **World cells** — Describe a biome + requirements → AI outputs valid cell JSON
-2. **Interior layouts** — Describe building type → AI outputs room + furniture + NPCs
-3. **Quests** — Describe story beats → AI outputs quest JSON with objectives + dialogue
-4. **Item definitions** — Describe theme → AI outputs balanced item stats
-5. **NPC dialogue trees** — Describe personality + quest role → AI outputs dialogue JSON
-
-Each schema is documented in `docs/SCHEMA.md` with examples and generation prompts.
-
----
-
-## 8. Open Design Questions
-
-- What's the death penalty? (Respawn at last save? Lose some gold? Soulslike?)
-- How fast should leveling be? (Quick for mobile sessions? Long for depth?)
-- PvP / multiplayer ever? (Probably not for Phase 1, but affects architecture)
-- Monetization? (Free with cosmetics? One-time purchase? Ads?)
-- Save system: localStorage only, or cloud sync?
-- Controller support? (Gamepad API for mobile controllers)
-
----
-
-## 9. Immediate Next Steps (Priority Order)
-
-1. **Radial Pause Menu** — The "tumble ring" UI. This is the most impactful single feature for player experience.
-2. **Event Bus** — Decouple all systems. Required before adding more systems cleanly.
-3. **Player Stats + HUD** — HP/Stamina/Magicka bars. Foundation for combat.
-4. **Enemy AI** — A simple enemy that chases + attacks. Makes combat meaningful.
-5. **Door Interaction** — Enter the tavern. First real "exploration discovery" moment.
-
----
-
-*This document is the source of truth. Update it when decisions change.*
+*This document is maintained alongside PRD.md and SCHEMA.md. Together they define the full game.*
