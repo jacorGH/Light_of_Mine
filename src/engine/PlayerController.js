@@ -157,14 +157,14 @@ export class PlayerController {
     const xRatio = clientX / w;
     const yRatio = clientY / h;
 
-    // Bottom 30% strip (wider action zone)
-    if (yRatio > 0.70) {
-      if (xRatio < 0.30) return 'move';
-      if (xRatio > 0.70) return 'look';
-      return 'action'; // center bottom — wider area
+    // Bottom 25% strip — tighter, more room for combat above
+    if (yRatio > 0.75) {
+      if (xRatio < 0.28) return 'move';
+      if (xRatio > 0.72) return 'look';
+      return 'action'; // center bottom — NARROW (only middle 44%)
     }
 
-    // Everything else is combat zone
+    // Everything above 75% is combat zone
     return 'combat';
   }
 
@@ -467,12 +467,12 @@ export class PlayerController {
     // Action bar — dual quickslot layout: [⚔ Wpn] [↑] [✨ Spell]
     this.actionBtn = document.createElement('div');
     Object.assign(this.actionBtn.style, {
-      position: 'fixed', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
-      width: '180px', height: '48px', borderRadius: '24px',
-      border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(0,0,0,0.4)',
+      position: 'fixed', bottom: '1%', left: '50%', transform: 'translateX(-50%)',
+      width: '150px', height: '56px', borderRadius: '28px',
+      border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(0,0,0,0.45)',
       zIndex: '999', pointerEvents: 'none', display: 'flex',
       alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 6px',
+      padding: '0 4px',
       fontFamily: 'monospace', fontSize: '9px',
     });
     // Weapon slot (left)
@@ -736,6 +736,29 @@ export class PlayerController {
     if (Math.abs(this.currentFov - this.camera.fov) > 0.1) {
       this.camera.fov = this.currentFov;
       this.camera.updateProjectionMatrix();
+    }
+
+    // Show/hide crosshair during zoom
+    if (this.isZooming && !this._crosshair) {
+      this._crosshair = document.createElement('div');
+      Object.assign(this._crosshair.style, {
+        position: 'fixed', top: '50%', left: '50%',
+        width: '12px', height: '12px', marginTop: '-6px', marginLeft: '-6px',
+        border: '1px solid rgba(255,255,255,0.6)', borderRadius: '50%',
+        zIndex: '1100', pointerEvents: 'none',
+        boxShadow: '0 0 4px rgba(255,255,255,0.3)',
+      });
+      const dot = document.createElement('div');
+      Object.assign(dot.style, {
+        position: 'absolute', top: '50%', left: '50%',
+        width: '2px', height: '2px', marginTop: '-1px', marginLeft: '-1px',
+        background: '#fff', borderRadius: '50%',
+      });
+      this._crosshair.appendChild(dot);
+      document.body.appendChild(this._crosshair);
+    } else if (!this.isZooming && this._crosshair) {
+      this._crosshair.remove();
+      this._crosshair = null;
     }
 
     // Terrain + jump

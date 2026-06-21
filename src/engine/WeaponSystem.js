@@ -461,51 +461,84 @@ export class WeaponSystem {
       });
     }
 
-    // Attack animation
+    // Attack animation — proper 3-phase: wind-up → strike → return
     if (this.isAttacking && mesh) {
       this.attackTimer += delta;
-      const duration = item.cooldown * 0.7;
+      const duration = item.cooldown * 0.8;
       const t = this.attackTimer / duration;
       const dir = this.attackDirection || 'right';
 
-      let swingX = 0, swingY = 0, swingZ = 0, thrustZ = 0;
+      // Define wind-up and strike positions for each direction
+      // [windX, windY, windZ] → [strikeX, strikeY, strikeZ]
+      let windX=0, windY=0, windZ=0, strikeX=0, strikeY=0, strikeZ=0, thrustZ=0;
+
       if (item.type === 'melee') {
         switch (dir) {
-          case 'up': swingX = -1.4; break;
-          case 'down': swingX = 1.4; break;
-          case 'left': swingZ = 1.2; swingY = 0.4; break;
-          case 'right': swingZ = -1.2; swingY = -0.4; break;
-          case 'up-left': swingX = -1.0; swingZ = 0.8; break;
-          case 'up-right': swingX = -1.0; swingZ = -0.8; break;
-          case 'down-left': swingX = 0.8; swingZ = 0.8; break;
-          case 'down-right': swingX = 0.8; swingZ = -0.8; break;
-          case 'center': thrustZ = -0.3; break;
-          default: swingZ = -1.2; break;
+          case 'up':    // Wind down, strike upward
+            windX = 0.6; strikeX = -1.2; break;
+          case 'down':  // Wind up, strike downward
+            windX = -0.5; strikeX = 1.3; break;
+          case 'left':  // Wind right, sweep left
+            windZ = -0.5; windY = -0.3; strikeZ = 1.2; strikeY = 0.4; break;
+          case 'right': // Wind left, sweep right
+            windZ = 0.5; windY = 0.3; strikeZ = -1.2; strikeY = -0.4; break;
+          case 'up-left':
+            windX = 0.4; windZ = -0.3; strikeX = -0.9; strikeZ = 0.8; break;
+          case 'up-right':
+            windX = 0.4; windZ = 0.3; strikeX = -0.9; strikeZ = -0.8; break;
+          case 'down-left':
+            windX = -0.3; windZ = -0.3; strikeX = 0.8; strikeZ = 0.7; break;
+          case 'down-right':
+            windX = -0.3; windZ = 0.3; strikeX = 0.8; strikeZ = -0.7; break;
+          case 'center': // Thrust: pull back then stab forward
+            thrustZ = -0.35; break;
+          default:
+            windZ = 0.4; strikeZ = -1.0; strikeY = -0.3; break;
         }
       }
 
-      if (t < 0.35) {
-        const s = t / 0.35;
-        if (item.type === 'melee') {
-          mesh.rotation.set(s * swingX, s * swingY, s * swingZ);
-          mesh.position.z = -0.6 + s * thrustZ;
+      const baseZ = this.attackingHand === 'left' ? -0.65 : -0.6;
+
+      if (item.type === 'melee') {
+        if (t < 0.2) {
+          // Phase 1: Wind-up (quick)
+          const s = t / 0.2;
+          mesh.rotation.set(s * windX, s * windY, s * windZ);
+          mesh.position.z = baseZ;
+        } else if (t < 0.5) {
+          // Phase 2: Strike (fast swing through)
+          const s = (t - 0.2) / 0.3;
+          mesh.rotation.set(
+            windX + s * (strikeX - windX),
+            windY + s * (strikeY - windY),
+            windZ + s * (strikeZ - windZ)
+          );
+          mesh.position.z = baseZ + s * thrustZ;
+        } else if (t < 1.0) {
+          // Phase 3: Return to idle
+          const s = (t - 0.5) / 0.5;
+          mesh.rotation.set(strikeX * (1-s), strikeY * (1-s), strikeZ * (1-s));
+          mesh.position.z = baseZ + thrustZ * (1-s);
         } else {
-          mesh.position.z = -0.6 + s * 0.15;
-          mesh.rotation.x = -s * 0.3;
-        }
-      } else if (t < 1.0) {
-        const r = (t - 0.35) / 0.65;
-        if (item.type === 'melee') {
-          mesh.rotation.set((1-r)*swingX, (1-r)*swingY, (1-r)*swingZ);
-          mesh.position.z = -0.6 + (1-r) * thrustZ;
-        } else {
-          mesh.position.z = -0.6 + (1-r) * 0.15;
-          mesh.rotation.x = -(1-r) * 0.3;
+          mesh.rotation.set(0, 0, 0);
+          mesh.position.z = baseZ;
+          this.isAttacking = false;
         }
       } else {
-        mesh.rotation.set(0, 0, 0);
-        mesh.position.z = -0.6;
-        this.isAttacking = false;
+        // Ranged/spell: push forward then back
+        if (t < 0.3) {
+          const s = t / 0.3;
+          mesh.position.z = baseZ + s * 0.12;
+          mesh.rotation.x = -s * 0.25;
+        } else if (t < 1.0) {
+          const s = (t - 0.3) / 0.7;
+          mesh.position.z = baseZ + 0.12 * (1-s);
+          mesh.rotation.x = -0.25 * (1-s);
+        } else {
+          mesh.rotation.set(0, 0, 0);
+          mesh.position.z = baseZ;
+          this.isAttacking = false;
+        }
       }
     }
 
