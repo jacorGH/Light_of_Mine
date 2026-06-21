@@ -1,0 +1,46 @@
+{
+  "id": "watchtower_interior",
+  "name": "Old Watchtower",
+  "environment": {
+    "ambientLight": { "color": "#aaaacc", "intensity": 0.2 },
+    "pointLights": [
+      { "position": [0, 3, 0], "color": "#ffaa66", "intensity": 0.4, "range": 8 },
+      { "position": [3, 1, -2], "color": "#6666ff", "intensity": 0.2, "range": 4 }
+    ]
+  },
+  "geometry": {
+    "size": [10, 6, 10],
+    "floorColor": "#3a3a3a",
+    "wallColor": "#4a4a44"
+  },
+  "spawn": {
+    "position": [0, 1, 4],
+    "rotation": [0, 0, 0]
+  },
+  "objects": [
+    { "asset": "ruin_pillar_01", "position": [3, 0, -3], "rotation": [5, 0, 0], "scale": 1.0 },
+    { "asset": "ruin_pillar_01", "position": [-3, 0, -3], "rotation": [0, 0, 3], "scale": 0.9 },
+    { "asset": "cobweb_01", "position": [3, 3, -4], "rotation": [0, 0, 0], "scale": 1.5 },
+    { "asset": "cobweb_01", "position": [-2, 4, 2], "rotation": [0, 90, 0], "scale": 1.2 },
+    { "asset": "barrel_01", "position": [4, 0, 2], "rotation": [0, 30, 0], "scale": 1.0 },
+    { "asset": "crate_01", "position": [-4, 0, -2], "rotation": [0, 15, 0], "scale": 1.0 },
+    { "asset": "torch_standing", "position": [0, 0, -4], "rotation": [0, 0, 0], "scale": 1.0 }
+  ],
+  "npcs": [],
+  "items": [
+    {
+      "id": "tower_chest",
+      "asset": "chest_ornate",
+      "position": [0, 0.3, -4],
+      "contents": ["sword_ancient", "gold_75", "potion_health_minor"]
+    }
+  ],
+  "exits": [
+    {
+      "id": "tower_exit",
+      "position": [0, 0, 4.5],
+      "exitPosition": [92, 2, -88],
+      "label": "Exit Tower"
+    }
+  ]
+}
