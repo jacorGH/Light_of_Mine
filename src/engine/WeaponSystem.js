@@ -185,11 +185,18 @@ export class WeaponSystem {
         lMesh.position.set(-0.22, -0.35, -0.65);
         lMesh.rotation.set(0, 0, 0);
         lMesh.scale.set(0.85, 0.85, 0.85);
+        if (lItem.id === 'sword' || lItem.id === 'iron_sword') {
+          lMesh.rotation.set(-0.3, 0, -0.1);
+        }
       }
       if (rMesh && rMesh !== lMesh) {
         rMesh.visible = true;
         rMesh.position.set(0.22, -0.3, -0.6);
         rMesh.rotation.set(0, 0, 0);
+        // Sword base angle: tilt slightly so blade edge faces forward
+        if (rItem.id === 'sword' || rItem.id === 'iron_sword') {
+          rMesh.rotation.set(-0.3, 0, 0.1);
+        }
       }
     }
 
@@ -219,7 +226,7 @@ export class WeaponSystem {
     this.attackingHand = hand;
 
     if (item.type === 'projectile') {
-      this.fireProjectile(item);
+      this.fireProjectile(item, gesture);
     }
     return true;
   }
@@ -237,9 +244,23 @@ export class WeaponSystem {
     return item && item.type === 'projectile';
   }
 
-  fireProjectile(item) {
-    const forward = new THREE.Vector3();
-    this.camera.getWorldDirection(forward);
+  fireProjectile(item, gesture = {}) {
+    // Calculate aim direction from finger position (if available) or camera forward
+    let forward;
+    if (gesture.aimX != null && gesture.aimY != null) {
+      // Convert screen position to normalized device coordinates
+      const ndcX = (gesture.aimX / window.innerWidth) * 2 - 1;
+      const ndcY = -(gesture.aimY / window.innerHeight) * 2 + 1;
+      // Create a ray from camera through the screen point
+      forward = new THREE.Vector3(ndcX, ndcY, 0.5);
+      forward.unproject(this.camera);
+      forward.sub(this.camera.position).normalize();
+    } else {
+      // Default: fire where camera is looking (center of screen)
+      forward = new THREE.Vector3();
+      this.camera.getWorldDirection(forward);
+    }
+
     const startPos = this.camera.position.clone();
     startPos.addScaledVector(forward, 1);
 
@@ -490,8 +511,8 @@ export class WeaponSystem {
             windX = -0.3; windZ = -0.3; strikeX = 0.8; strikeZ = 0.7; break;
           case 'down-right':
             windX = -0.3; windZ = 0.3; strikeX = 0.8; strikeZ = -0.7; break;
-          case 'center': // Thrust: pull back then stab forward
-            thrustZ = -0.35; break;
+          case 'center': // Thrust: pull back then stab forward, rotating blade to point forward
+            windX = 0.2; thrustZ = -0.4; strikeX = -0.15; break;
           default:
             windZ = 0.4; strikeZ = -1.0; strikeY = -0.3; break;
         }

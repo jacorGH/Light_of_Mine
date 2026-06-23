@@ -275,10 +275,12 @@ export class PlayerController {
 
       } else if (touch.identifier === this.combatTouch.id) {
         this.updateSwipeTrail(touch.clientX, touch.clientY);
-        // If in aim mode, drag down = draw strength
+        // If in aim mode, track finger for aim direction + draw strength
         if (this._combatIsAiming) {
           const dragDown = touch.clientY - this._aimStartY;
           this.drawStrength = Math.max(0, Math.min(1, dragDown / 100));
+          this._aimScreenX = touch.clientX;
+          this._aimScreenY = touch.clientY;
         }
       }
     }
@@ -298,13 +300,23 @@ export class PlayerController {
       } else if (touch.identifier === this.combatTouch.id) {
         clearTimeout(this._combatZoomTimer);
         if (this._combatIsAiming) {
-          // Release aim = fire with draw strength
+          // Release aim = fire toward finger position
           this.isZooming = false;
           this._combatIsAiming = false;
           if (this.onCombatGesture) {
-            this.onCombatGesture({ type: 'ranged_release', direction: 'center', label: '', power: this.drawStrength || 0.5 });
+            this.onCombatGesture({
+              type: 'ranged_release',
+              direction: 'center',
+              label: '',
+              power: this.drawStrength || 0.5,
+              hand: this._aimHand || 'right',
+              aimX: this._aimScreenX,
+              aimY: this._aimScreenY,
+            });
           }
           this.drawStrength = 0;
+          this._aimScreenX = null;
+          this._aimScreenY = null;
         } else {
           this.resolveCombatSwipe(touch.clientX, touch.clientY);
         }
